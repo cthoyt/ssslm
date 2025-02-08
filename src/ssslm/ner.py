@@ -151,11 +151,15 @@ class GildaGrounder(Grounder):
         """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
         import gilda
         import gilda.ner
+        import nltk.data
+        import pystow
 
         self._grounder = gilda.Grounder([m.to_gilda() for m in literal_mappings])
         self._annotate = gilda.ner.annotate
 
-        # TODO automate downloading nltk utils w/ pystow
+        directory = pystow.join("nltk")
+        nltk.download("stopwords", download_dir=directory)
+        nltk.data.path.append(directory)
 
     def get_matches(  # type:ignore[override]
         self,

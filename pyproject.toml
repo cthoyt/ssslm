@@ -67,13 +67,15 @@ tests = [
 ]
 docs = [
     "sphinx>=8",
-    "sphinx-rtd-theme>=3.0","sphinx-click", 
+    "sphinx-rtd-theme>=3.0",
+    "sphinx-click",
     "sphinx_automodapi",
     "autodoc_pydantic",
 ]
 gilda = [
     "gilda-slim",
     "nltk",
+    "pystow", # for automatic nltk download
 ]
 
 [tool.uv.sources]
