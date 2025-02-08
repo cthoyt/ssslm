@@ -144,22 +144,28 @@ class Grounder(Matcher, Annotator, ABC):
     """A combine matcher and annotator."""
 
 
+def _ensure_nltk() -> None:
+    """Ensure NLTK data is downloaded properly."""
+    import nltk.data
+    import pystow
+
+    directory = pystow.join("nltk")
+    nltk.download("stopwords", download_dir=directory)
+    nltk.data.path.append(directory)
+
+
 class GildaGrounder(Grounder):
     """A grounder and annotator that uses gilda as a backend."""
 
     def __init__(self, literal_mappings: Iterable[LiteralMapping]) -> None:
         """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
+        _ensure_nltk()  # very important - do this before importing gilda.ner
+
         import gilda
         import gilda.ner
-        import nltk.data
-        import pystow
 
         self._grounder = gilda.Grounder([m.to_gilda() for m in literal_mappings])
         self._annotate = gilda.ner.annotate
-
-        directory = pystow.join("nltk")
-        nltk.download("stopwords", download_dir=directory)
-        nltk.data.path.append(directory)
 
     def get_matches(  # type:ignore[override]
         self,
