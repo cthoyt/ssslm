@@ -42,18 +42,6 @@ class Match(BaseModel):
     reference: NamableReference
     score: float
 
-    @classmethod
-    def from_gilda(cls, scored_match: gilda.ScoredMatch) -> Match:
-        """Wrap a Gilda scored match."""
-        return cls(
-            reference=NamedReference(
-                prefix=scored_match.term.db,
-                identifier=scored_match.term.id,
-                name=scored_match.term.entry_name,
-            ),
-            score=scored_match.score,
-        )
-
     @property
     def prefix(self) -> str:
         """Get the scored match's term's prefix."""
@@ -167,6 +155,18 @@ class GildaGrounder(Grounder):
         self._grounder = gilda.Grounder([m.to_gilda() for m in literal_mappings])
         self._annotate = gilda.ner.annotate
 
+    @staticmethod
+    def _convert_gilda_match(scored_match: gilda.ScoredMatch) -> Match:
+        """Wrap a Gilda scored match."""
+        return Match(
+            reference=NamedReference(
+                prefix=scored_match.term.db,
+                identifier=scored_match.term.id,
+                name=scored_match.term.entry_name,
+            ),
+            score=scored_match.score,
+        )
+
     def get_matches(  # type:ignore[override]
         self,
         text: str,
@@ -176,7 +176,7 @@ class GildaGrounder(Grounder):
     ) -> list[Match]:
         """Get matches in the SSSLM format using :meth:`gilda.Grounder.ground`."""
         return [
-            Match.from_gilda(scored_match)
+            self._convert_gilda_match(scored_match)
             for scored_match in self._grounder.ground(
                 text, context=context, organisms=organisms, namespaces=namespaces
             )
@@ -187,7 +187,7 @@ class GildaGrounder(Grounder):
         return [
             Annotation(
                 text=text,
-                match=Match.from_gilda(match),
+                match=self._convert_gilda_match(match),
                 start=annotation.start,
                 end=annotation.end,
             )
