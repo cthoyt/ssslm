@@ -33,13 +33,59 @@
     -->
 </p>
 
-A simple standard for sharing literal mappings.
+A simple standard for sharing literal mappings (SSSLM).
 
 ## 💪 Getting Started
 
-> TODO show in a very small amount of space the **MOST** useful thing your
-> package can do. Make it as short as possible! You have an entire set of docs
-> for later.
+This repository implements a data model for synonyms / literal mappings that can
+be reused for curation, construction of lexica, and population of NER/NEN tools.
+It's analogous to [SSSOM](https://mapping-commons.github.io/sssom/), but for
+mapping from entities defined with CURIEs to names and synonyms, including
+internationalization support.
+
+It's data model is defined using Pydantic, and corresponds to the following
+columns in a TSV file:
+
+1. `text` the synonym text itself
+2. `curie` the compact uniform resource identifier (CURIE) for a biomedical
+   entity or concept, standardized using the Bioregistry
+3. `name` the standard name for the concept
+4. `predicate` the predicate which encodes the synonym scope, written as a CURIE
+   from the [OBO in OWL (`oboInOWL`)](https://bioregistry.io/oio) or RDFS
+   controlled vocabularies, e.g., one of:
+   - `rdfs:label`
+   - `oboInOwl:hasExactSynonym`
+   - `oboInOwl:hasNarrowSynonym` (i.e., the synonym represents a narrower term)
+   - `oboInOwl:hasBroadSynonym` (i.e., the synonym represents a broader term)
+   - `oboInOwl:hasRelatedSynonym` (use this if the scope is unknown)
+5. `type` the (optional) synonym property type, written as a CURIE from the
+   [OBO Metadata Ontology (`omo`)](https://bioregistry.io/omo) controlled
+   vocabulary, e.g., one of:
+   - `OMO:0003000` (abbreviation)
+   - `OMO:0003001` (ambiguous synonym)
+   - `OMO:0003002` (dubious synonym)
+   - `OMO:0003003` (layperson synonym)
+   - `OMO:0003004` (plural form)
+   - ...
+6. `provenance` a comma-delimited list of CURIEs corresponding to publications
+   that use the given synonym (ideally using highly actionable identifiers from
+   semantic spaces like [`pubmed`](https://bioregistry.io/pubmed),
+   [`pmc`](https://bioregistry.io/pmc), [`doi`](https://bioregistry.io/doi))
+7. `contributor` a CURIE with the ORCID identifier of the contributor
+8. `date` the optional date when the row was curated in YYYY-MM-DD format
+9. `language` the (optional) ISO 2-letter language code. If missing, assumed to
+   be American English.
+10. `comment` an optional comment
+11. `source` the source of the synonyms, usually `biosynonyms` unless imported
+    from elsewhere
+12. `taxon` the optional NCBITaxon CURIE, if the term is taxon-specific
+
+Here's an example of some rows in the synonyms table (with linkified CURIEs):
+
+| text            | curie                                               | predicate                                                                   | provenance                                                                                                           | contributor                                                                   | language |
+| --------------- | --------------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | -------- |
+| alsterpaullone  | [CHEBI:138488](https://bioregistry.io/CHEBI:138488) | [rdfs:label](https://bioregistry.io/rdfs:label)                             | [pubmed:30655881](https://bioregistry.io/pubmed:30655881)                                                            | [orcid:0000-0003-4423-4370](https://bioregistry.io/orcid:0000-0003-4423-4370) | en       |
+| 9-nitropaullone | [CHEBI:138488](https://bioregistry.io/CHEBI:138488) | [oboInOwl:hasExactSynonym](https://bioregistry.io/oboInOwl:hasExactSynonym) | [pubmed:11597333](https://bioregistry.io/pubmed:11597333), [pubmed:10911915](https://bioregistry.io/pubmed:10911915) | [orcid:0000-0003-4423-4370](https://bioregistry.io/orcid:0000-0003-4423-4370) | en       |
 
 ### Command Line Interface
 
