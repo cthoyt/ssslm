@@ -63,6 +63,7 @@ tests = [
     "pytest",
     "coverage[toml]",
     "responses",
+    "pandas",
 ]
 docs = [
     "sphinx>=8",

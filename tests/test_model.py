@@ -2,6 +2,7 @@
 
 import datetime
 import tempfile
+import typing
 import unittest
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from curies import NamableReference, Reference
 from curies import vocabulary as v
 
 import ssslm
-from ssslm.model import DEFAULT_PREDICATE, LiteralMapping
+from ssslm.model import DEFAULT_PREDICATE, LiteralMapping, Writer
 
 TR_1 = NamableReference.from_curie("test:1", "test")
 TR_2 = NamableReference.from_curie("test:2", "test2")
@@ -37,6 +38,19 @@ class TestGildaIO(unittest.TestCase):
         with self.assertRaises(ValueError):
             literal_mapping.to_gilda()
 
+    def test_bad_organism(self) -> None:
+        """Test when trying to generate a gilda term with non-ncbitaxon reference."""
+        literal_mapping = LiteralMapping(
+            text="test",
+            reference=NamableReference(prefix="test", identifier="1", name="test"),
+            taxon=Reference(prefix="kegg", identifier="nope"),
+        )
+        with self.assertRaises(ValueError) as exc:
+            literal_mapping.to_gilda()
+        self.assertEqual(
+            "NCBITaxon reference is required to convert to gilda.", exc.exception.args[0]
+        )
+
     def test_gilda_synonym(self) -> None:
         """Test getting gilda terms."""
         literal_mapping = LiteralMapping(
@@ -53,6 +67,16 @@ class TestGildaIO(unittest.TestCase):
             text="tests", predicate=DEFAULT_PREDICATE, reference=TR_1
         )
         self.assertEqual(literal_mapping_expected, LiteralMapping.from_gilda(gilda_term))
+
+    def test_gilda_has_taxon(self) -> None:
+        """Test getting gilda terms."""
+        literal_mapping = LiteralMapping(
+            text="tests", reference=TR_1, taxon=Reference(prefix="NCBITaxon", identifier="9606")
+        )
+        gilda_term = literal_mapping.to_gilda()
+        self.assertEqual("synonym", gilda_term.status)
+
+        self.assertEqual(literal_mapping, LiteralMapping.from_gilda(gilda_term))
 
     def test_gilda_name(self) -> None:
         """Test getting gilda terms."""
@@ -166,13 +190,17 @@ class TestModel(unittest.TestCase):
         reconstituted = ssslm.df_to_literal_mappings(df)
         self.assertEqual(literal_mappings, reconstituted)
 
-        # test writing/reading round trip
-        with tempfile.TemporaryDirectory() as d:
-            path = Path(d).joinpath("test.tsv")
-            ssslm.write_literal_mappings(path, literal_mappings)
-            reloaded_synonyms = ssslm.read_literal_mappings(path)
+        for writer in typing.get_args(Writer):
+            # test writing/reading round trip
+            with tempfile.TemporaryDirectory() as d:
+                path = Path(d).joinpath(f"test_{writer}.tsv")
+                ssslm.write_literal_mappings(path, literal_mappings, writer=writer)
+                reloaded_synonyms = ssslm.read_literal_mappings(path)
 
-        self.assertEqual(literal_mappings, reloaded_synonyms)
+            self.assertEqual(literal_mappings, reloaded_synonyms)
+
+        with self.assertRaises(ValueError):
+            ssslm.write_literal_mappings(path, literal_mappings, writer="nope")
 
     def test_remap(self) -> None:
         """Test remapping."""
@@ -186,13 +214,13 @@ class TestModel(unittest.TestCase):
         )
         mappings = [(TR_1, TR_2), (TR_4, TR_5)]
         new_literal_mappings = ssslm.remap_literal_mappings(literal_mappings, mappings)
-        expectedliteral_mappings = sorted(
+        expected_literal_mappings = sorted(
             [
                 LiteralMapping(reference=TR_2, text="test", predicate=_c(v.has_label), date=today),
                 unchanged,
             ]
         )
-        self.assertEqual(expectedliteral_mappings, new_literal_mappings)
+        self.assertEqual(expected_literal_mappings, new_literal_mappings)
 
     @responses.activate
     def test_read_remote(self) -> None:
