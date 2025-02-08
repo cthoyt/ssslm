@@ -1,0 +1,186 @@
+"""NER utilities build on literal mappings."""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias
+
+from curies import NamableReference, NamedReference
+from pydantic import BaseModel
+
+from .model import LiteralMapping
+
+if TYPE_CHECKING:
+    import gilda
+
+__all__ = [
+    "Annotation",
+    "Annotator",
+    "GildaGrounder",
+    "Grounder",
+    "Match",
+    "Matcher",
+    "make_grounder",
+]
+
+Implementation: TypeAlias = Literal["gilda"]
+
+
+def make_grounder(
+    literal_mappings: Iterable[LiteralMapping], implementation: Implementation | None = None
+) -> Grounder:
+    """Get a Gilda grounder from literal mappings."""
+    if implementation is None or implementation == "gilda":
+        return GildaGrounder(literal_mappings)
+    raise ValueError(f"Unsupported implementation: {implementation}")
+
+
+class Match(BaseModel):
+    """A match from NER."""
+
+    reference: NamableReference
+    score: float
+
+    @classmethod
+    def from_gilda(cls, scored_match: gilda.ScoredMatch) -> Match:
+        """Wrap a Gilda scored match."""
+        return cls(
+            reference=NamedReference(
+                prefix=scored_match.term.db,
+                identifier=scored_match.term.id,
+                name=scored_match.term.entry_name,
+            ),
+            score=scored_match.score,
+        )
+
+    @property
+    def prefix(self) -> str:
+        """Get the scored match's term's prefix."""
+        return self.reference.prefix
+
+    @property
+    def identifier(self) -> str:
+        """Get the scored match's term's identifier."""
+        return self.reference.identifier
+
+    @property
+    def curie(self) -> str:
+        """Get the scored match's CURIE."""
+        return self.reference.curie
+
+    @property
+    def name(self) -> str | None:
+        """Get the scored match's term's name."""
+        return self.reference.name
+
+
+class Annotation(BaseModel):
+    """Data about an annotation."""
+
+    text: str
+    start: int
+    end: int
+    match: Match
+
+    @property
+    def reference(self) -> NamableReference:
+        """Get the scored match's reference."""
+        return self.match.reference
+
+    @property
+    def prefix(self) -> str:
+        """Get the scored match's term's prefix."""
+        return self.reference.prefix
+
+    @property
+    def identifier(self) -> str:
+        """Get the scored match's term's identifier."""
+        return self.reference.identifier
+
+    @property
+    def curie(self) -> str:
+        """Get the scored match's CURIE."""
+        return self.reference.curie
+
+    @property
+    def name(self) -> str | None:
+        """Get the scored match's term's name."""
+        return self.reference.name
+
+    @property
+    def score(self) -> float:
+        """Get the match's score."""
+        return self.match.score
+
+    @property
+    def substr(self) -> str:
+        """Get the substring that was matched."""
+        return self.text[self.start : self.end]
+
+
+class Matcher(ABC):
+    """An interface for a grounder."""
+
+    @abstractmethod
+    def get_matches(self, text: str, **kwargs: Any) -> list[Match]:
+        """Get matches in the SSSLM format."""
+
+    def get_best_match(self, text: str, **kwargs: Any) -> Match | None:
+        """Get matches in the SSSLM format."""
+        matches = self.get_matches(text, **kwargs)
+        return matches[0] if matches else None
+
+
+class Annotator(ABC):
+    """An interface for something that can annotate."""
+
+    @abstractmethod
+    def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+        """Annotate the text."""
+
+
+class Grounder(Matcher, Annotator, ABC):
+    """A combine matcher and annotator."""
+
+
+class GildaGrounder(Grounder):
+    """A grounder and annotator that uses gilda as a backend."""
+
+    def __init__(self, literal_mappings: Iterable[LiteralMapping]) -> None:
+        """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
+        import gilda
+        import gilda.ner
+
+        self._grounder = gilda.Grounder([m.to_gilda() for m in literal_mappings])
+        self._annotate = gilda.ner.annotate
+
+        # TODO automate downloading nltk utils w/ pystow
+
+    def get_matches(  # type:ignore[override]
+        self,
+        text: str,
+        context: str | None = None,
+        organisms: list[str] | None = None,
+        namespaces: list[str] | None = None,
+    ) -> list[Match]:
+        """Get matches in the SSSLM format using :meth:`gilda.Grounder.ground`."""
+        return [
+            Match.from_gilda(scored_match)
+            for scored_match in self._grounder.ground(
+                text, context=context, organisms=organisms, namespaces=namespaces
+            )
+        ]
+
+    def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+        """Annotate the text."""
+        return [
+            Annotation(
+                text=text,
+                match=Match.from_gilda(match),
+                start=annotation.start,
+                end=annotation.end,
+            )
+            for annotation in self._annotate(text, grounder=self._grounder, **kwargs)
+            for match in annotation.matches
+        ]
