@@ -87,6 +87,16 @@ Here's an example of some rows in the synonyms table (with linkified CURIEs):
 | alsterpaullone  | [CHEBI:138488](https://bioregistry.io/CHEBI:138488) | [rdfs:label](https://bioregistry.io/rdfs:label)                             | [pubmed:30655881](https://bioregistry.io/pubmed:30655881)                                                            | [orcid:0000-0003-4423-4370](https://bioregistry.io/orcid:0000-0003-4423-4370) | en       |
 | 9-nitropaullone | [CHEBI:138488](https://bioregistry.io/CHEBI:138488) | [oboInOwl:hasExactSynonym](https://bioregistry.io/oboInOwl:hasExactSynonym) | [pubmed:11597333](https://bioregistry.io/pubmed:11597333), [pubmed:10911915](https://bioregistry.io/pubmed:10911915) | [orcid:0000-0003-4423-4370](https://bioregistry.io/orcid:0000-0003-4423-4370) | en       |
 
+**Limitations**
+
+- It's hard to know which exact matches between different vocabularies could be
+  used to deduplicate synonyms. Right now, this isn't covered but some partial
+  solutions already exist that could be adopted.
+- This doesn't keep track of NER annotations, such as when you want to keep
+  track of the start and end
+- This doesn't keep track of transformations done to make mappings. It's more
+  oriented towards curation.
+
 ### Command Line Interface
 
 The `ssslm` command line tool is automatically installed. It can be used from
