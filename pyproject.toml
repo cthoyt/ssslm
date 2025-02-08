@@ -53,7 +53,7 @@ requires-python = ">=3.10"
 dependencies = [
     "curies",
     "pydantic",
-    "pydantic-extra-types",
+    "pydantic-extra-types[pycountry]",
     "tqdm",
     "click",
 ]
@@ -74,6 +74,11 @@ gilda = [
     "gilda",
     "nltk",
 ]
+
+[tool.uv.sources]
+# this fork of gilda doesn't install any of
+# the unneeded requirements for grounding
+gilda = { git = "https://github.com/cthoyt/gilda", branch = "slim" }
 
 # See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#urls
 # and also https://packaging.python.org/en/latest/specifications/well-known-project-urls/
