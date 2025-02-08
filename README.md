@@ -57,7 +57,7 @@ df = ssslm.literal_mappings_to_df([m1])
 ssslm.write_literal_mappings([m1], "literal_mappings.tsv")
 
 # Read mappings from TSV
-mappings = ssslm.read_literal_mappings("literal_mappings")
+mappings = ssslm.read_literal_mappings("literal_mappings.tsv")
 ```
 
 Note that references are standardized using the
