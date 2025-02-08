@@ -71,7 +71,7 @@ docs = [
     "autodoc_pydantic",
 ]
 gilda = [
-    "gilda",
+    "gilda-slim",
     "nltk",
 ]
 
