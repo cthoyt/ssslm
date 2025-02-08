@@ -70,18 +70,20 @@ docs = [
     "sphinx-rtd-theme>=3.0",
     "sphinx-click",
     "sphinx_automodapi",
-    "autodoc_pydantic",
+]
+# this is a slimmed-down version of requirements for gilda,
+# which gets around issues with installing heavy requirements
+# like adeft and flask
+gilda-slim = [
+    "gilda-slim", # works as a drop-in replacement for gilda
+    "nltk", # needed for NER functionality
+    "pystow", # needed for auto-download of NLTK stopwords corpus
 ]
 gilda = [
-    "gilda-slim",
+    "gilda",
     "nltk",
-    "pystow", # for automatic nltk download
+    "pystow",
 ]
-
-[tool.uv.sources]
-# this fork of gilda doesn't install any of
-# the unneeded requirements for grounding
-gilda = { git = "https://github.com/cthoyt/gilda", branch = "slim" }
 
 # See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#urls
 # and also https://packaging.python.org/en/latest/specifications/well-known-project-urls/
