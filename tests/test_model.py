@@ -194,13 +194,13 @@ class TestModel(unittest.TestCase):
             # test writing/reading round trip
             with tempfile.TemporaryDirectory() as d:
                 path = Path(d).joinpath(f"test_{writer}.tsv")
-                ssslm.write_literal_mappings(path, literal_mappings, writer=writer)
+                ssslm.write_literal_mappings(literal_mappings, path, writer=writer)
                 reloaded_synonyms = ssslm.read_literal_mappings(path)
 
             self.assertEqual(literal_mappings, reloaded_synonyms)
 
         with self.assertRaises(ValueError):
-            ssslm.write_literal_mappings(path, literal_mappings, writer="nope")
+            ssslm.write_literal_mappings(literal_mappings, path, writer="nope")
 
     def test_remap(self) -> None:
         """Test remapping."""
@@ -231,7 +231,7 @@ class TestModel(unittest.TestCase):
         url = "https://example.com/test.tsv"
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory).joinpath("test.tsv")
-            ssslm.write_literal_mappings(path, expected_literal_mappings)
+            ssslm.write_literal_mappings(expected_literal_mappings, path)
             responses.add(
                 responses.GET,
                 url,

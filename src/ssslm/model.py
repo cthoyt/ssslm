@@ -319,8 +319,8 @@ def _resolve_writer(writer: Writer | None = None) -> Writer:
 
 
 def write_literal_mappings(
-    path: str | Path,
     literal_mappings: Iterable[LiteralMapping],
+    path: str | Path,
     *,
     writer: Literal["pandas", "csv"] | None = None,
 ) -> None:
@@ -328,21 +328,21 @@ def write_literal_mappings(
     path = Path(path).expanduser().resolve()
     writer = _resolve_writer(writer)
     if writer == "pandas":
-        _write_pandas(path, literal_mappings)
+        _write_pandas(literal_mappings=literal_mappings, path=path)
     elif writer == "csv":
-        _write_builtin(path, literal_mappings)
+        _write_builtin(literal_mappings=literal_mappings, path=path)
     else:
         raise ValueError(f"invalid writer: {writer}. Choose one of {Writer}")
 
 
-def _write_builtin(path: Path, literal_mappings: Iterable[LiteralMapping]) -> None:
+def _write_builtin(*, path: Path, literal_mappings: Iterable[LiteralMapping]) -> None:
     with path.open("w") as file:
         writer = csv.writer(file, delimiter="\t")
         writer.writerow(HEADER)
         writer.writerows(literal_mapping._as_row() for literal_mapping in literal_mappings)
 
 
-def _write_pandas(path: Path, literal_mappings: Iterable[LiteralMapping]) -> None:
+def _write_pandas(*, path: Path, literal_mappings: Iterable[LiteralMapping]) -> None:
     df = literal_mappings_to_df(literal_mappings)
     df.to_csv(path, index=False, sep="\t")
 
@@ -439,7 +439,7 @@ def lint_literal_mappings(path: Path, *, delimiter: str | None = None) -> None:
     """Lint a literal mappings file."""
     literal_mappings = read_literal_mappings(path, delimiter=delimiter)
     literal_mappings = sorted(literal_mappings)
-    write_literal_mappings(path, literal_mappings)
+    write_literal_mappings(literal_mappings, path)
 
 
 def _lm_sort_key(lm: LiteralMapping) -> tuple[str, str, str, str]:
