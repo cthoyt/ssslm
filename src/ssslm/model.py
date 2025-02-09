@@ -53,6 +53,7 @@ class LiteralMappingTuple(NamedTuple):
 
 
 SynonymTuple = LiteralMappingTuple
+NamableReferenceType: TypeAlias = type[NamableReference]
 
 #: The header for the spreadsheet
 HEADER = list(LiteralMappingTuple._fields)
@@ -142,23 +143,27 @@ class LiteralMapping(BaseModel):
 
     @classmethod
     def from_row(
-        cls, row: dict[str, Any], *, names: Mapping[Reference, str] | None = None
+        cls,
+        row: dict[str, Any],
+        *,
+        names: Mapping[Reference, str] | None = None,
+        reference_cls: NamableReferenceType = NamableReference,
     ) -> LiteralMapping:
         """Parse a dictionary representing a row in a TSV."""
-        reference = Reference.from_curie(row["curie"])
+        reference = reference_cls.from_curie(row["curie"])
         name = (names or {}).get(reference) or row.get("name")
         data = {
             "text": row["text"],
-            "reference": NamableReference(
+            "reference": reference_cls(
                 prefix=reference.prefix, identifier=reference.identifier, name=name
             ),
             "predicate": (
-                Reference.from_curie(predicate_curie.strip())
+                reference_cls.from_curie(predicate_curie.strip())
                 if (predicate_curie := row.get("predicate"))
                 else DEFAULT_PREDICATE
             ),
             "provenance": [
-                Reference.from_curie(provenance_curie.strip())
+                reference_cls.from_curie(provenance_curie.strip())
                 for provenance_curie in (row.get("provenance") or "").split(",")
                 if provenance_curie.strip()
             ],
@@ -170,7 +175,7 @@ class LiteralMapping(BaseModel):
             "date": row.get("date") or None,
         }
         if contributor_curie := (row.get("contributor") or "").strip():
-            data["contributor"] = Reference.from_curie(contributor_curie)
+            data["contributor"] = reference_cls.from_curie(contributor_curie)
 
         return cls.model_validate(data)
 
@@ -357,6 +362,7 @@ def read_literal_mappings(
     *,
     delimiter: str | None = None,
     names: Mapping[Reference, str] | None = None,
+    reference_cls: NamableReferenceType = NamableReference,
 ) -> list[LiteralMapping]:
     """Load literal mappings from a file.
 
@@ -364,6 +370,9 @@ def read_literal_mappings(
     :param delimiter: The delimiter for the CSV/TSV file. Defaults to tab
     :param names: A pre-parsed dictionary from references
         (i.e., prefix-luid pairs) to default labels
+    :param reference_cls: The class used to parse references. E.g., swap out for
+        :class:`pyobo.Reference` to automatically do Bioregistry validation on
+        references.
     :returns: A list of literal mappings parsed from the table
     """
     if isinstance(path, str) and any(path.startswith(schema) for schema in ("https://", "http://")):
@@ -371,7 +380,12 @@ def read_literal_mappings(
 
         res = requests.get(path, timeout=15)
         res.raise_for_status()
-        return _from_lines(res.iter_lines(decode_unicode=True), delimiter=delimiter, names=names)
+        return _from_lines(
+            res.iter_lines(decode_unicode=True),
+            delimiter=delimiter,
+            names=names,
+            reference_cls=reference_cls,
+        )
 
     path = Path(path).expanduser().resolve()
 
@@ -379,13 +393,14 @@ def read_literal_mappings(
         return _parse_numbers(path, names=names)
 
     with path.open() as file:
-        return _from_lines(file, delimiter=delimiter, names=names)
+        return _from_lines(file, delimiter=delimiter, names=names, reference_cls=reference_cls)
 
 
 def _parse_numbers(
     path: str | Path,
     *,
     names: Mapping[Reference, str] | None = None,
+    reference_cls: NamableReferenceType = NamableReference,
 ) -> list[LiteralMapping]:
     # code example from https://pypi.org/project/numbers-parser
     import numbers_parser
@@ -394,7 +409,11 @@ def _parse_numbers(
     sheets = doc.sheets
     tables = sheets[0].tables
     header, *rows = tables[0].rows(values_only=True)
-    return _from_dicts((dict(zip(header, row, strict=False)) for row in rows), names=names)
+    return _from_dicts(
+        (dict(zip(header, row, strict=False)) for row in rows),
+        names=names,
+        reference_cls=reference_cls,
+    )
 
 
 def _from_lines(
@@ -402,21 +421,29 @@ def _from_lines(
     *,
     delimiter: str | None = None,
     names: Mapping[Reference, str] | None = None,
+    reference_cls: NamableReferenceType = NamableReference,
 ) -> list[LiteralMapping]:
-    return _from_dicts(csv.DictReader(lines, delimiter=delimiter or "\t"), names=names)
+    return _from_dicts(
+        csv.DictReader(lines, delimiter=delimiter or "\t"),
+        names=names,
+        reference_cls=reference_cls,
+    )
 
 
 def _from_dicts(
     dicts: Iterable[dict[str, Any]],
     *,
     names: Mapping[Reference, str] | None = None,
+    reference_cls: NamableReferenceType = NamableReference,
 ) -> list[LiteralMapping]:
     rv = []
     for i, record in enumerate(dicts, start=2):
         record = {k: v for k, v in record.items() if k and v and k.strip() and v.strip()}
         if record:
             try:
-                literal_mapping = LiteralMapping.from_row(record, names=names)
+                literal_mapping = LiteralMapping.from_row(
+                    record, names=names, reference_cls=reference_cls
+                )
             except ValueError as e:
                 raise ValueError(f"failed on row {i}: {record}") from e
             rv.append(literal_mapping)
@@ -456,6 +483,7 @@ def remap_literal_mappings(
 
     :param literal_mappings: A list of literal mappings
     :param mappings: A list of pairs that constitute mappings, e.g. from SeMRA
+    :param progress: Should a progress bar be shown?
     :return: A new list of literal mapping objects that have been remapped
     """
     index = group_literal_mappings(literal_mappings)

@@ -10,6 +10,7 @@ import gilda
 import responses
 from curies import NamableReference, Reference
 from curies import vocabulary as v
+from pydantic import model_validator
 
 import ssslm
 from ssslm.model import DEFAULT_PREDICATE, LiteralMapping, Writer
@@ -121,10 +122,6 @@ class TestGildaIO(unittest.TestCase):
         self.assertEqual(v.has_exact_synonym, literal_mapping.predicate)
 
 
-def _c(r: NamableReference) -> Reference:
-    return Reference(prefix=r.prefix, identifier=r.identifier)
-
-
 class TestModel(unittest.TestCase):
     """Test the data model."""
 
@@ -170,18 +167,18 @@ class TestModel(unittest.TestCase):
         """Test IO roundtrip."""
         today = datetime.date.today()
         literal_mappings = [
-            LiteralMapping(reference=TR_1, text="test", predicate=_c(v.has_label), date=today),
+            LiteralMapping(reference=TR_1, text="test", predicate=v.has_label, date=today),
             LiteralMapping(
                 reference=TR_1,
                 text="tests",
-                predicate=_c(v.has_exact_synonym),
-                type=_c(v.plural_form),
+                predicate=v.has_exact_synonym,
+                type=v.plural_form,
             ),
             LiteralMapping(
                 reference=TR_1,
                 text="checks",
-                predicate=_c(v.has_exact_synonym),
-                contributor=_c(v.charlie),
+                predicate=v.has_exact_synonym,
+                contributor=v.charlie,
             ),
         ]
 
@@ -205,10 +202,10 @@ class TestModel(unittest.TestCase):
     def test_remap(self) -> None:
         """Test remapping."""
         today = datetime.date.today()
-        unchanged = LiteralMapping(reference=TR_3, text="bbb", predicate=_c(v.has_label))
+        unchanged = LiteralMapping(reference=TR_3, text="bbb", predicate=v.has_label)
         literal_mappings = sorted(
             [
-                LiteralMapping(reference=TR_1, text="test", predicate=_c(v.has_label), date=today),
+                LiteralMapping(reference=TR_1, text="test", predicate=v.has_label, date=today),
                 unchanged,
             ]
         )
@@ -216,7 +213,7 @@ class TestModel(unittest.TestCase):
         new_literal_mappings = ssslm.remap_literal_mappings(literal_mappings, mappings)
         expected_literal_mappings = sorted(
             [
-                LiteralMapping(reference=TR_2, text="test", predicate=_c(v.has_label), date=today),
+                LiteralMapping(reference=TR_2, text="test", predicate=v.has_label, date=today),
                 unchanged,
             ]
         )
@@ -226,7 +223,7 @@ class TestModel(unittest.TestCase):
     def test_read_remote(self) -> None:
         """Test reading remote."""
         expected_literal_mappings = [
-            LiteralMapping(reference=TR_1, text="test", predicate=_c(v.has_label)),
+            LiteralMapping(reference=TR_1, text="test", predicate=v.has_label),
         ]
         url = "https://example.com/test.tsv"
         with tempfile.TemporaryDirectory() as directory:
@@ -239,3 +236,28 @@ class TestModel(unittest.TestCase):
             )
         literal_mappings = ssslm.read_literal_mappings(url)
         self.assertEqual(expected_literal_mappings, literal_mappings)
+
+    def test_custom_reference_class(self) -> None:
+        """Test when using a custom reference class."""
+
+        class CustomReference(NamableReference):
+            """A custom reference that checks the prefix."""
+
+            @model_validator(mode="before")
+            def validate_identifier(cls, values):  # noqa
+                """Validate the identifier."""
+                prefix = values["prefix"]
+                if prefix not in {"test.custom"}:
+                    raise ValueError(f"invalid prefix: {prefix}")
+                return values
+
+        expected_literal_mappings = [
+            LiteralMapping(reference=NamableReference.from_curie("test:1", "A"), text="A"),
+            LiteralMapping(reference=NamableReference.from_curie("test.custom:02", "B"), text="B"),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory).joinpath("test.tsv")
+            ssslm.write_literal_mappings(expected_literal_mappings, path)
+
+            with self.assertRaises(ValueError):
+                ssslm.read_literal_mappings(path, reference_cls=CustomReference)
