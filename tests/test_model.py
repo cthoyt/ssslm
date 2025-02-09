@@ -65,7 +65,7 @@ class TestGildaIO(unittest.TestCase):
 
         # the predicate and plural form information gets lost in the round trio
         literal_mapping_expected = LiteralMapping(
-            text="tests", predicate=DEFAULT_PREDICATE, reference=TR_1
+            text="tests", predicate=DEFAULT_PREDICATE, reference=TR_1, source=TR_1.prefix
         )
         self.assertEqual(literal_mapping_expected, LiteralMapping.from_gilda(gilda_term))
 
@@ -77,7 +77,10 @@ class TestGildaIO(unittest.TestCase):
         gilda_term = literal_mapping.to_gilda()
         self.assertEqual("synonym", gilda_term.status)
 
-        self.assertEqual(literal_mapping, LiteralMapping.from_gilda(gilda_term))
+        self.assertEqual(
+            literal_mapping.model_copy(update={"source": TR_1.prefix}),
+            LiteralMapping.from_gilda(gilda_term),
+        )
 
     def test_gilda_name(self) -> None:
         """Test getting gilda terms."""
@@ -85,7 +88,10 @@ class TestGildaIO(unittest.TestCase):
         gilda_term = literal_mapping.to_gilda()
         self.assertEqual("name", gilda_term.status)
 
-        self.assertEqual(literal_mapping, LiteralMapping.from_gilda(gilda_term))
+        self.assertEqual(
+            literal_mapping.model_copy(update={"source": TR_1.prefix}),
+            LiteralMapping.from_gilda(gilda_term),
+        )
 
     def test_gilda_former_name(self) -> None:
         """Test getting gilda terms."""
@@ -104,6 +110,7 @@ class TestGildaIO(unittest.TestCase):
             predicate=DEFAULT_PREDICATE,
             type=v.previous_name,
             reference=TR_1,
+            source=TR_1.prefix,  # automtically set
         )
         self.assertEqual(literal_mapping_expected, LiteralMapping.from_gilda(gilda_term))
 

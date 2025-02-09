@@ -154,6 +154,7 @@ class GildaGrounder(Grounder):
         *,
         prefix_priority: list[str] | None = None,
         grounder_cls: type[gilda.Grounder] | None = None,
+        filter_duplicates: bool = True,
     ) -> None:
         """Initialize a grounder wrapping a :class:`gilda.Grounder`.
 
@@ -161,20 +162,24 @@ class GildaGrounder(Grounder):
         :param prefix_priority: The priority list of prefixes to break ties. Maps to
             ``namespace_priority`` in :meth:`gilda.Grounder.__init__`
         :param grounder_cls: A custom subclass of :class:`gilda.Grounder`, if given.
+        :param filter_duplicates: Should duplicates be filtered using
+            :func:`gilda.term.filter_out_duplicates`? Defaults to true.
 
         """
         _ensure_nltk()  # very important - do this before importing gilda.ner
 
         import gilda.ner
+        from gilda.term import filter_out_duplicates
 
         if grounder_cls is None:
             import gilda
 
             grounder_cls = gilda.Grounder
 
-        self._grounder = grounder_cls(
-            [m.to_gilda() for m in literal_mappings], namespace_priority=prefix_priority
-        )
+        terms = [m.to_gilda() for m in literal_mappings]
+        if filter_duplicates:
+            terms = filter_out_duplicates(terms)
+        self._grounder = grounder_cls(terms, namespace_priority=prefix_priority)
         self._annotate = gilda.ner.annotate
 
     @staticmethod
