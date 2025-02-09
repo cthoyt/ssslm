@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Literal, TypeAlias
 
 from curies import NamableReference, NamedReference
 from pydantic import BaseModel
+from typing_extensions import Self
 
 from .model import LiteralMapping
 
@@ -33,9 +35,9 @@ def make_grounder(
     implementation: Implementation | None = None,
     **kwargs: Any,
 ) -> Grounder:
-    """Get a Gilda grounder from literal mappings."""
+    """Get a grounder from literal mappings."""
     if implementation is None or implementation == "gilda":
-        return GildaGrounder(literal_mappings, **kwargs)
+        return GildaGrounder.from_literal_mappings(literal_mappings, **kwargs)
     raise ValueError(f"Unsupported implementation: {implementation}")
 
 
@@ -135,6 +137,7 @@ class Grounder(Matcher, Annotator, ABC):
     """A combine matcher and annotator."""
 
 
+@lru_cache(1)
 def _ensure_nltk() -> None:
     """Ensure NLTK data is downloaded properly."""
     import nltk.data
@@ -144,18 +147,31 @@ def _ensure_nltk() -> None:
     nltk.download("stopwords", download_dir=directory)
     nltk.data.path.append(directory)
 
+    # this is cached so you don't have to keep checking
+    # if the package was downloaded
+
 
 class GildaGrounder(Grounder):
     """A grounder and annotator that uses gilda as a backend."""
 
-    def __init__(
-        self,
+    def __init__(self, grounder: gilda.Grounder) -> None:
+        """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
+        _ensure_nltk()  # very important - do this before importing gilda.ner
+
+        import gilda.ner
+
+        self._grounder = grounder
+        self._annotate = gilda.ner.annotate
+
+    @classmethod
+    def from_literal_mappings(
+        cls,
         literal_mappings: Iterable[LiteralMapping],
         *,
         prefix_priority: list[str] | None = None,
         grounder_cls: type[gilda.Grounder] | None = None,
         filter_duplicates: bool = True,
-    ) -> None:
+    ) -> Self:
         """Initialize a grounder wrapping a :class:`gilda.Grounder`.
 
         :param literal_mappings: The literal mappings to populate the grounder
@@ -166,9 +182,6 @@ class GildaGrounder(Grounder):
             :func:`gilda.term.filter_out_duplicates`? Defaults to true.
 
         """
-        _ensure_nltk()  # very important - do this before importing gilda.ner
-
-        import gilda.ner
         from gilda.term import filter_out_duplicates
 
         if grounder_cls is None:
@@ -179,8 +192,8 @@ class GildaGrounder(Grounder):
         terms = [m.to_gilda() for m in literal_mappings]
         if filter_duplicates:
             terms = filter_out_duplicates(terms)
-        self._grounder = grounder_cls(terms, namespace_priority=prefix_priority)
-        self._annotate = gilda.ner.annotate
+        grounder = grounder_cls(terms, namespace_priority=prefix_priority)
+        return cls(grounder)
 
     @staticmethod
     def _convert_gilda_match(scored_match: gilda.ScoredMatch) -> Match:
