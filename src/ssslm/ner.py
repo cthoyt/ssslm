@@ -28,11 +28,14 @@ Implementation: TypeAlias = Literal["gilda"]
 
 
 def make_grounder(
-    literal_mappings: Iterable[LiteralMapping], implementation: Implementation | None = None
+    literal_mappings: Iterable[LiteralMapping],
+    *,
+    implementation: Implementation | None = None,
+    **kwargs: Any,
 ) -> Grounder:
     """Get a Gilda grounder from literal mappings."""
     if implementation is None or implementation == "gilda":
-        return GildaGrounder(literal_mappings)
+        return GildaGrounder(literal_mappings, **kwargs)
     raise ValueError(f"Unsupported implementation: {implementation}")
 
 
@@ -145,14 +148,32 @@ def _ensure_nltk() -> None:
 class GildaGrounder(Grounder):
     """A grounder and annotator that uses gilda as a backend."""
 
-    def __init__(self, literal_mappings: Iterable[LiteralMapping]) -> None:
-        """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
+    def __init__(
+        self,
+        literal_mappings: Iterable[LiteralMapping],
+        *,
+        prefix_priority: list[str] | None = None,
+        grounder_cls: type[gilda.Grounder] | None = None,
+    ) -> None:
+        """Initialize a grounder wrapping a :class:`gilda.Grounder`.
+
+        :param literal_mappings: The literal mappings to populate the grounder
+        :param prefix_priority: The priority list of prefixes to break ties.
+            Maps to ``namespace_priority`` in :meth:`gilda.Grounder.__init__`
+        :param grounder_cls: A custom subclass of :class:`gilda.Grounder`, if given.
+        """
         _ensure_nltk()  # very important - do this before importing gilda.ner
 
-        import gilda
         import gilda.ner
 
-        self._grounder = gilda.Grounder([m.to_gilda() for m in literal_mappings])
+        if grounder_cls is None:
+            import gilda
+
+            grounder_cls = gilda.Grounder
+
+        self._grounder = grounder_cls(
+            [m.to_gilda() for m in literal_mappings], namespace_priority=prefix_priority
+        )
         self._annotate = gilda.ner.annotate
 
     @staticmethod
