@@ -1,14 +1,4 @@
-"""A FastAPI-based web wrapper around the grounder.
-
-
-Run this with:
-
-.. code-block::
-
-    $ uv run -m ssslm.web
-
-
-"""
+"""A FastAPI-based web wrapper around the grounder."""
 
 from typing import Annotated
 
