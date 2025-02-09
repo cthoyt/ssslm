@@ -257,7 +257,7 @@ class LiteralMapping(BaseModel):
             text=self.text,
             reference=self.reference,
             status=self._get_gilda_status(),
-            source=self.source,
+            source=self.source or self.reference.prefix,
             ncbitaxon_id=self.taxon.identifier if self.taxon else None,
         )
 

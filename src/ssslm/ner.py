@@ -166,6 +166,7 @@ class GildaGrounder(Grounder):
         _ensure_nltk()  # very important - do this before importing gilda.ner
 
         import gilda.ner
+        from gilda.term import filter_out_duplicates
 
         if grounder_cls is None:
             import gilda
@@ -173,7 +174,8 @@ class GildaGrounder(Grounder):
             grounder_cls = gilda.Grounder
 
         self._grounder = grounder_cls(
-            [m.to_gilda() for m in literal_mappings], namespace_priority=prefix_priority
+            filter_out_duplicates([m.to_gilda() for m in literal_mappings]),
+            namespace_priority=prefix_priority,
         )
         self._annotate = gilda.ner.annotate
 

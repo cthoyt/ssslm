@@ -24,28 +24,29 @@ class TestNER(unittest.TestCase):
         literal_mapping = LiteralMapping(reference=reference, text=text)
 
         for grounder_cls in [None, gilda.Grounder]:
-            grounder = make_grounder([literal_mapping], grounder_cls=grounder_cls)
+            with self.subTest(cls=grounder_cls):
+                grounder = make_grounder([literal_mapping], grounder_cls=grounder_cls)
 
-            self.assertIsNone(grounder.get_best_match("nope"))
+                self.assertIsNone(grounder.get_best_match("nope"))
 
-            scored_matches = grounder.get_matches(text)
-            self.assertEqual(1, len(scored_matches))
-            match = scored_matches[0]
-            self.assertEqual(reference, match.reference)
-            self.assertEqual("sgd", match.prefix)
-            self.assertEqual("S000000019", match.identifier)
-            self.assertEqual("sgd:S000000019", match.curie)
-            self.assertEqual("YAL021C", match.name)
+                scored_matches = grounder.get_matches(text)
+                self.assertEqual(1, len(scored_matches))
+                match = scored_matches[0]
+                self.assertEqual(reference, match.reference)
+                self.assertEqual("sgd", match.prefix)
+                self.assertEqual("S000000019", match.identifier)
+                self.assertEqual("sgd:S000000019", match.curie)
+                self.assertEqual("YAL021C", match.name)
 
-            sentence = f"This sentence is about {text} and all of its great things."
-            annotations = grounder.annotate(sentence)
-            self.assertEqual(1, len(annotations))
-            annotation = annotations[0]
-            self.assertEqual(reference, annotation.reference)
-            self.assertEqual(sentence, annotation.text)
-            self.assertEqual("sgd", annotation.prefix)
-            self.assertEqual("S000000019", annotation.identifier)
-            self.assertEqual("sgd:S000000019", annotation.curie)
-            self.assertEqual(5 / 9, annotation.score)
-            self.assertEqual("YAL021C", annotation.name)
-            self.assertEqual(text, annotation.substr)
+                sentence = f"This sentence is about {text} and all of its great things."
+                annotations = grounder.annotate(sentence)
+                self.assertEqual(1, len(annotations))
+                annotation = annotations[0]
+                self.assertEqual(reference, annotation.reference)
+                self.assertEqual(sentence, annotation.text)
+                self.assertEqual("sgd", annotation.prefix)
+                self.assertEqual("S000000019", annotation.identifier)
+                self.assertEqual("sgd:S000000019", annotation.curie)
+                self.assertEqual(5 / 9, annotation.score)
+                self.assertEqual("YAL021C", annotation.name)
+                self.assertEqual(text, annotation.substr)
