@@ -3,7 +3,6 @@
 from pathlib import Path
 from typing import Annotated
 
-import click
 import fastapi
 from fastapi import Depends, FastAPI, Request
 from pydantic import BaseModel
@@ -63,14 +62,3 @@ def annotate(
 ) -> list[Annotation]:
     """Annotate text."""
     return grounder.annotate(annotation_request.text)
-
-
-@click.command()
-@click.argument("path")
-def main(path: str) -> None:
-    """Run a grounding app."""
-    run_app(path)
-
-
-if __name__ == "__main__":
-    main()
