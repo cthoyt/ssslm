@@ -5,10 +5,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Literal, Self, TypeAlias
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias
 
 from curies import NamableReference, NamedReference
 from pydantic import BaseModel
+from typing_extensions import Self
 
 from .model import LiteralMapping
 
