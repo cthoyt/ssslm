@@ -22,6 +22,8 @@ if TYPE_CHECKING:
     import pandas
 
 __all__ = [
+    "DEFAULT_PREDICATE",
+    "PREDICATES",
     "LiteralMapping",
     "LiteralMappingTuple",
     "append_literal_mapping",

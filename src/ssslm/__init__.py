@@ -1,6 +1,8 @@
 """A simple standard for sharing literal mappings."""
 
 from .model import (
+    DEFAULT_PREDICATE,
+    PREDICATES,
     LiteralMapping,
     LiteralMappingTuple,
     append_literal_mapping,
@@ -15,6 +17,8 @@ from .model import (
 from .ner import Annotation, Annotator, Grounder, Match, Matcher, make_grounder
 
 __all__ = [
+    "DEFAULT_PREDICATE",
+    "PREDICATES",
     "Annotation",
     "Annotator",
     "Grounder",
