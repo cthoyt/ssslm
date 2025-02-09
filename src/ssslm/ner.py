@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Literal, Self, TypeAlias
 
 from curies import NamableReference, NamedReference
@@ -135,6 +136,7 @@ class Grounder(Matcher, Annotator, ABC):
     """A combine matcher and annotator."""
 
 
+@lru_cache(1)
 def _ensure_nltk() -> None:
     """Ensure NLTK data is downloaded properly."""
     import nltk.data
@@ -143,6 +145,9 @@ def _ensure_nltk() -> None:
     directory = pystow.join("nltk")
     nltk.download("stopwords", download_dir=directory)
     nltk.data.path.append(directory)
+
+    # this is cached so you don't have to keep checking
+    # if the package was downloaded
 
 
 class GildaGrounder(Grounder):
