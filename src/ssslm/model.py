@@ -251,8 +251,6 @@ class LiteralMapping(BaseModel):
         :returns: An object that can be indexed by Gilda for NER and grounding
 
         """
-        if not self.name:
-            raise ValueError("can't make a Gilda term without a label")
         if self.taxon and self.taxon.prefix.lower() != "ncbitaxon":
             raise ValueError("NCBITaxon reference is required to convert to gilda.")
         return _gilda_term(

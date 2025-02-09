@@ -30,15 +30,6 @@ class TestGildaIO(unittest.TestCase):
         with self.assertRaises(ValueError):
             LiteralMapping._predicate_type_from_gilda("nope")
 
-    def test_gilda_missing_name(self) -> None:
-        """Test when trying to generate a gilda term with a missing name."""
-        literal_mapping = LiteralMapping(
-            text="test",
-            reference=NamableReference(prefix="test", identifier="1"),
-        )
-        with self.assertRaises(ValueError):
-            literal_mapping.to_gilda()
-
     def test_bad_organism(self) -> None:
         """Test when trying to generate a gilda term with non-ncbitaxon reference."""
         literal_mapping = LiteralMapping(
