@@ -1,5 +1,6 @@
 """A FastAPI-based web wrapper around the grounder."""
 
+from pathlib import Path
 from typing import Annotated
 
 import click
@@ -18,8 +19,11 @@ __all__ = [
 api_router = fastapi.APIRouter()
 
 
-def run_app(grounder: ssslm.Grounder) -> None:
+def run_app(grounder: ssslm.Grounder | str | Path) -> None:
     """Construct a FastAPI app from a grounder and run with :mod:`uvicorn`."""
+    if isinstance(grounder, str | Path):
+        grounder = ssslm.make_grounder(ssslm.read_literal_mappings(grounder))
+
     import uvicorn
 
     uvicorn.run(get_app(grounder))
@@ -65,9 +69,7 @@ def annotate(
 @click.argument("path")
 def main(path: str) -> None:
     """Run a grounding app."""
-    mappings = ssslm.read_literal_mappings(path)
-    grounder = ssslm.make_grounder(mappings)
-    run_app(grounder)
+    run_app(path)
 
 
 if __name__ == "__main__":
