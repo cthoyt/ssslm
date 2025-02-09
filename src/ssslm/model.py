@@ -11,7 +11,7 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeAlias
 
-from curies import NamableReference, Reference
+from curies import NamableReference, NamedReference, Reference
 from curies import vocabulary as v
 from pydantic import BaseModel, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
@@ -225,7 +225,7 @@ class LiteralMapping(BaseModel):
         """
         predicate, synonym_type = cls._predicate_type_from_gilda(term.status)
         data = {
-            "reference": NamableReference(prefix=term.db, identifier=term.id, name=term.entry_name),
+            "reference": NamedReference(prefix=term.db, identifier=term.id, name=term.entry_name),
             "predicate": predicate,
             "text": term.text,
             "type": synonym_type,
