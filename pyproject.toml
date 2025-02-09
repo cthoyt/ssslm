@@ -64,6 +64,7 @@ tests = [
     "coverage[toml]",
     "responses",
     "pandas",
+    "httpx",
 ]
 docs = [
     "sphinx>=8",
@@ -83,6 +84,10 @@ gilda = [
     "gilda",
     "nltk",
     "pystow",
+]
+web = [
+    "fastapi",
+    "uvicorn",
 ]
 
 # See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#urls
