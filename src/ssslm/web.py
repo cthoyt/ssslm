@@ -27,7 +27,7 @@ def run_app(grounder: ssslm.Grounder) -> None:
 
 def get_app(grounder: ssslm.Grounder) -> FastAPI:
     """Construct a FastAPI app from a grounder."""
-    app = FastAPI(title="Biolexica Grounder")
+    app = FastAPI(title="SSSLM Grounder")
     app.state = grounder  # type:ignore
     app.include_router(api_router, prefix="/api")
     return app
