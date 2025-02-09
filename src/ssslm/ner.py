@@ -158,9 +158,10 @@ class GildaGrounder(Grounder):
         """Initialize a grounder wrapping a :class:`gilda.Grounder`.
 
         :param literal_mappings: The literal mappings to populate the grounder
-        :param prefix_priority: The priority list of prefixes to break ties.
-            Maps to ``namespace_priority`` in :meth:`gilda.Grounder.__init__`
+        :param prefix_priority: The priority list of prefixes to break ties. Maps to
+            ``namespace_priority`` in :meth:`gilda.Grounder.__init__`
         :param grounder_cls: A custom subclass of :class:`gilda.Grounder`, if given.
+
         """
         _ensure_nltk()  # very important - do this before importing gilda.ner
 

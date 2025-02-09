@@ -214,12 +214,14 @@ class LiteralMapping(BaseModel):
         """Construct a synonym from a :mod:`gilda` term.
 
         :param term: A Gilda term
+
         :returns: A synonym object
 
         .. warning::
 
-            Gilda's data model is less detailed, so resulting synonym objects
-            will not have detailed curation provenance
+            Gilda's data model is less detailed, so resulting synonym objects will not
+            have detailed curation provenance
+
         """
         predicate, synonym_type = cls._predicate_type_from_gilda(term.status)
         data = {
@@ -244,8 +246,8 @@ class LiteralMapping(BaseModel):
     def to_gilda(self) -> gilda.Term:
         """Get this synonym as a :mod:`gilda` term.
 
-        :return:
-            An object that can be indexed by Gilda for NER and grounding
+        :returns: An object that can be indexed by Gilda for NER and grounding
+
         """
         if not self.name:
             raise ValueError("can't make a Gilda term without a label")
@@ -368,12 +370,14 @@ def read_literal_mappings(
 
     :param path: A local file path or URL for a biosynonyms-flavored CSV/TSV file
     :param delimiter: The delimiter for the CSV/TSV file. Defaults to tab
-    :param names: A pre-parsed dictionary from references
-        (i.e., prefix-luid pairs) to default labels
+    :param names: A pre-parsed dictionary from references (i.e., prefix-luid pairs) to
+        default labels
     :param reference_cls: The class used to parse references. E.g., swap out for
         :class:`pyobo.Reference` to automatically do Bioregistry validation on
         references.
+
     :returns: A list of literal mappings parsed from the table
+
     """
     if isinstance(path, str) and any(path.startswith(schema) for schema in ("https://", "http://")):
         import requests
@@ -484,7 +488,9 @@ def remap_literal_mappings(
     :param literal_mappings: A list of literal mappings
     :param mappings: A list of pairs that constitute mappings, e.g. from SeMRA
     :param progress: Should a progress bar be shown?
-    :return: A new list of literal mapping objects that have been remapped
+
+    :returns: A new list of literal mapping objects that have been remapped
+
     """
     index = group_literal_mappings(literal_mappings)
 

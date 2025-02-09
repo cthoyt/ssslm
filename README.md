@@ -48,7 +48,10 @@ from ssslm import LiteralMapping
 from curies import NamedReference
 
 # Construct a mapping using Pydantic objects
-m1 = LiteralMapping(reference=NamedReference(prefix="NCBITaxon", identifier="9606", name="Homo sapiens"), text="human")
+m1 = LiteralMapping(
+   reference=NamedReference(prefix="NCBITaxon", identifier="9606", name="Homo sapiens"),
+   text="human",
+)
 
 # get a pandas dataframe
 df = ssslm.literal_mappings_to_df([m1])
@@ -118,7 +121,7 @@ Here's an example of some rows in the synonyms table (with linkified CURIEs):
   used to deduplicate synonyms. Right now, this isn't covered but some partial
   solutions already exist that could be adopted.
 - This doesn't keep track of NER annotations, such as when you want to keep
-  track of the start and end
+  track of the start and end position in a full sentence or paragraph
 - This doesn't keep track of transformations done to make mappings. It's more
   oriented towards curation.
 
