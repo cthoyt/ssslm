@@ -11,7 +11,7 @@ from curies import NamableReference, NamedReference
 from pydantic import BaseModel
 from typing_extensions import Self
 
-from .model import LiteralMapping
+from .model import LiteralMapping, literal_mappings_to_gilda
 
 if TYPE_CHECKING:
     import gilda
@@ -189,7 +189,7 @@ class GildaGrounder(Grounder):
 
             grounder_cls = gilda.Grounder
 
-        terms = [m.to_gilda() for m in literal_mappings]
+        terms = literal_mappings_to_gilda(literal_mappings)
         if filter_duplicates:
             terms = filter_out_duplicates(terms)
         grounder = grounder_cls(terms, namespace_priority=prefix_priority)
