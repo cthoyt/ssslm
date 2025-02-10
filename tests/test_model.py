@@ -210,6 +210,31 @@ class TestModel(unittest.TestCase):
         with self.assertRaises(ValueError):
             ssslm.write_literal_mappings(literal_mappings, path, writer="nope")
 
+    def test_gilda_io_roundtrip(self) -> None:
+        """Test gilda roundtrip."""
+        literal_mappings = [
+            LiteralMapping(reference=TR_1, text="test", predicate=v.has_label),
+            LiteralMapping(reference=TR_1, text="tests"),
+            LiteralMapping(reference=TR_1, text="checks"),
+        ]
+        # gilda roundtrip makes a few minor changes
+        expected_mappings = [
+            LiteralMapping(reference=TR_1, text="test", predicate=v.has_label, source=TR_1.prefix),
+            LiteralMapping(reference=TR_1, text="tests", source=TR_1.prefix),
+            LiteralMapping(reference=TR_1, text="checks", source=TR_1.prefix),
+        ]
+
+        # test error on filepath without gz extension
+        with self.assertRaises(ValueError):
+            ssslm.write_gilda_terms(literal_mappings, Path("terms.tsv"))
+
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d).joinpath("terms.tsv.gz")
+            ssslm.write_gilda_terms(literal_mappings, path)
+
+            reloaded = ssslm.read_gilda_terms(path)
+            self.assertEqual(expected_mappings, reloaded)
+
     def test_remap(self) -> None:
         """Test remapping."""
         today = datetime.date.today()
