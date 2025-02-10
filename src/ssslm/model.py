@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TextIO, TypeAlias
 
-from curies import NamableReference, NamedReference, Reference
+from curies import NamableReference, NamedReference, Reference, ReferenceTuple
 from curies import vocabulary as v
 from pydantic import BaseModel, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
@@ -518,9 +518,15 @@ def remap_literal_mappings(
     """
     index = group_literal_mappings(literal_mappings)
 
+    # build a lookup table, since the mappings coming into this function
+    # might not have names associated with them, but the literal mappings do
+    refs: dict[ReferenceTuple, NamableReference] = {i.pair: i for i in index}
+
     for source, target in tqdm(
         mappings, unit="mapping", unit_scale=True, desc="applying mappings", disable=not progress
     ):
+        # overwrite the target with a reference that has a name, if it exists
+        target = refs.get(target.pair, target)
         source_literal_mappings: list[LiteralMapping] | None = index.pop(source, None)
         if source_literal_mappings:
             index.setdefault(target, []).extend(
