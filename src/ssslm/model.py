@@ -34,8 +34,10 @@ __all__ = [
     "lint_literal_mappings",
     "literal_mappings_to_df",
     "literal_mappings_to_gilda",
+    "read_gilda_terms",
     "read_literal_mappings",
     "remap_literal_mappings",
+    "write_gilda_terms",
     "write_literal_mappings",
 ]
 
@@ -429,6 +431,32 @@ def read_literal_mappings(
 
     with _safe_open(path) as file:
         return _from_lines(file, delimiter=delimiter, names=names, reference_cls=reference_cls)
+
+
+def read_gilda_terms(path: str | Path) -> list[LiteralMapping]:
+    """Read Gilda terms from a file."""
+    import gilda.grounder
+
+    path = _prepare_gilda_path(path)
+    return [
+        LiteralMapping.from_gilda(gilda_term)
+        for gilda_term in gilda.grounder.load_entries_from_terms_file(path)
+    ]
+
+
+def write_gilda_terms(literal_mappings: Iterable[LiteralMapping], path: str | Path) -> None:
+    """Write Gilda terms to a file."""
+    from gilda import dump_terms
+
+    path = _prepare_gilda_path(path)
+    dump_terms(literal_mappings_to_gilda(literal_mappings, on_error="ignore"), path)
+
+
+def _prepare_gilda_path(path: str | Path) -> Path:
+    path = Path(path).expanduser().resolve()
+    if not path.suffix.endswith(".gz"):
+        raise ValueError(f"gilda terms files are required to be gzipped and end with .gz: {path}")
+    return path
 
 
 @contextmanager

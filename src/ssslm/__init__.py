@@ -11,8 +11,10 @@ from .model import (
     lint_literal_mappings,
     literal_mappings_to_df,
     literal_mappings_to_gilda,
+    read_gilda_terms,
     read_literal_mappings,
     remap_literal_mappings,
+    write_gilda_terms,
     write_literal_mappings,
 )
 from .ner import (
@@ -45,7 +47,9 @@ __all__ = [
     "literal_mappings_to_df",
     "literal_mappings_to_gilda",
     "make_grounder",
+    "read_gilda_terms",
     "read_literal_mappings",
     "remap_literal_mappings",
+    "write_gilda_terms",
     "write_literal_mappings",
 ]
