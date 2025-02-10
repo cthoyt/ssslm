@@ -40,6 +40,10 @@ encoding labels, synonyms, synonym types, internationalization, and other
 important information for curation, construction of lexica, and population of
 NER/NEN tools.
 
+SSSLM echos the name of [SSSOM](https://mapping-commons.github.io/sssom/), which
+is a related standard for ontological mappings. SSSLM can be pronounced
+S-S-S-L-M, sess-lem, or however brings joy to you.
+
 ## 💪 Getting Started
 
 ```python
