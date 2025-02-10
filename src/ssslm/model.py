@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import csv
 import datetime
+import gzip
 import importlib.util
 import itertools as itt
 from collections import defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Generator, Iterable, Mapping
+from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeAlias
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TextIO, TypeAlias
 
 from curies import NamableReference, NamedReference, Reference
 from curies import vocabulary as v
@@ -384,6 +386,7 @@ def read_literal_mappings(
     if isinstance(path, str) and any(path.startswith(schema) for schema in ("https://", "http://")):
         import requests
 
+        # FIXME what if it's gzipped
         res = requests.get(path, timeout=15)
         res.raise_for_status()
         return _from_lines(
@@ -398,8 +401,18 @@ def read_literal_mappings(
     if path.suffix == ".numbers":
         return _parse_numbers(path, names=names)
 
-    with path.open() as file:
+    with _safe_open(path) as file:
         return _from_lines(file, delimiter=delimiter, names=names, reference_cls=reference_cls)
+
+
+@contextmanager
+def _safe_open(path: Path) -> Generator[TextIO, None, None]:
+    if path.suffix == ".gz":
+        with gzip.open(path, mode="rt") as file:
+            yield file
+    else:
+        with open(path) as file:
+            yield file
 
 
 def _parse_numbers(

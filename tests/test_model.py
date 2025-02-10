@@ -244,6 +244,24 @@ class TestModel(unittest.TestCase):
         literal_mappings = ssslm.read_literal_mappings(url)
         self.assertEqual(expected_literal_mappings, literal_mappings)
 
+    @responses.activate
+    def test_read_remote_gz(self) -> None:
+        """Test reading remote gzipped-file."""
+        expected_literal_mappings = [
+            LiteralMapping(reference=TR_1, text="test", predicate=v.has_label),
+        ]
+        url = "https://example.com/test.tsv.gz"
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory).joinpath("test.tsv.gz")
+            ssslm.write_literal_mappings(expected_literal_mappings, path)
+            responses.add(
+                responses.GET,
+                url,
+                path.read_text(),
+            )
+        literal_mappings = ssslm.read_literal_mappings(url)
+        self.assertEqual(expected_literal_mappings, literal_mappings)
+
     def test_custom_reference_class(self) -> None:
         """Test when using a custom reference class."""
 
