@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TypeAlias, TypeGuard
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias, TypeGuard, Union
 
 from curies import NamableReference, NamedReference
 from pydantic import BaseModel
@@ -32,7 +32,7 @@ __all__ = [
 Implementation: TypeAlias = Literal["gilda"]
 
 #: A type for an object can be coerced into a SSSLM-backed grounder via :func:`make_grounder`
-GrounderHint: TypeAlias = str | Path | Iterable[LiteralMapping] | "gilda.Grounder" | "Grounder"
+GrounderHint: TypeAlias = Union[Iterable[LiteralMapping], str, Path, "gilda.Grounder", "Grounder"]
 
 
 def make_grounder(
