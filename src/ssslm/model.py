@@ -72,6 +72,9 @@ PREDICATES = [v.has_label, *v.synonym_scopes.values()]
 #: standard - when you don't specify a scope, this is what it infers
 DEFAULT_PREDICATE = v.has_related_synonym
 
+#: The error policy when converting to/from gilda terms
+GildaErrorPolicy: TypeAlias = Literal["ignore", "raise"]
+
 
 class LiteralMapping(BaseModel):
     """A data model for literal mappings."""
@@ -270,7 +273,7 @@ class LiteralMapping(BaseModel):
 
 
 def literal_mappings_to_gilda(
-    literal_mappings: Iterable[LiteralMapping], *, on_error: Literal["ignore", "raise"] = "raise"
+    literal_mappings: Iterable[LiteralMapping], *, on_error: GildaErrorPolicy = "raise"
 ) -> list[gilda.Term]:
     """Convert literal mappings to gilda terms."""
     gilda_terms = []
@@ -444,12 +447,17 @@ def read_gilda_terms(path: str | Path) -> list[LiteralMapping]:
     ]
 
 
-def write_gilda_terms(literal_mappings: Iterable[LiteralMapping], path: str | Path) -> None:
+def write_gilda_terms(
+    literal_mappings: Iterable[LiteralMapping],
+    path: str | Path,
+    *,
+    on_error: GildaErrorPolicy = "ignore",
+) -> None:
     """Write Gilda terms to a file."""
     from gilda import dump_terms
 
     path = _prepare_gilda_path(path)
-    dump_terms(literal_mappings_to_gilda(literal_mappings, on_error="ignore"), path)
+    dump_terms(literal_mappings_to_gilda(literal_mappings, on_error=on_error), path)
 
 
 def _prepare_gilda_path(path: str | Path) -> Path:
