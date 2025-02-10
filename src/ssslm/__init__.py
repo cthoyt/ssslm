@@ -15,7 +15,16 @@ from .model import (
     remap_literal_mappings,
     write_literal_mappings,
 )
-from .ner import Annotation, Annotator, GildaGrounder, Grounder, Match, Matcher, make_grounder
+from .ner import (
+    Annotation,
+    Annotator,
+    GildaGrounder,
+    Grounder,
+    GrounderHint,
+    Match,
+    Matcher,
+    make_grounder,
+)
 
 __all__ = [
     "DEFAULT_PREDICATE",
@@ -24,6 +33,7 @@ __all__ = [
     "Annotator",
     "GildaGrounder",
     "Grounder",
+    "GrounderHint",
     "LiteralMapping",
     "LiteralMappingTuple",
     "Match",
