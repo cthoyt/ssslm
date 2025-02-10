@@ -22,6 +22,10 @@ TR_4 = NamableReference.from_curie("test:4", "test4")
 TR_5 = NamableReference.from_curie("test:5", "test5")
 
 
+def _s(r: Reference) -> Reference:
+    return Reference(prefix=r.prefix, identifier=r.identifier)
+
+
 class TestGildaIO(unittest.TestCase):
     """Test converting between the SSSLM literal mapping data structure and :class:`gilda.Term`."""
 
@@ -216,7 +220,7 @@ class TestModel(unittest.TestCase):
                 unchanged,
             ]
         )
-        mappings = [(TR_1, TR_2), (TR_4, TR_5)]
+        mappings = [(_s(TR_1), _s(TR_2)), (_s(TR_4), _s(TR_5))]
         new_literal_mappings = ssslm.remap_literal_mappings(literal_mappings, mappings)
         expected_literal_mappings = sorted(
             [
