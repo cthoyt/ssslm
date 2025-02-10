@@ -386,15 +386,24 @@ def read_literal_mappings(
     if isinstance(path, str) and any(path.startswith(schema) for schema in ("https://", "http://")):
         import requests
 
-        # FIXME what if it's gzipped
-        res = requests.get(path, timeout=15)
-        res.raise_for_status()
-        return _from_lines(
-            res.iter_lines(decode_unicode=True),
-            delimiter=delimiter,
-            names=names,
-            reference_cls=reference_cls,
-        )
+        if path.endswith(".gz"):
+            with requests.get(path, stream=True, timeout=15) as res:
+                lines = gzip.decompress(res.content).decode().splitlines()
+                return _from_lines(
+                    lines,
+                    delimiter=delimiter,
+                    names=names,
+                    reference_cls=reference_cls,
+                )
+        else:
+            res = requests.get(path, timeout=15)
+            res.raise_for_status()
+            return _from_lines(
+                res.iter_lines(decode_unicode=True),
+                delimiter=delimiter,
+                names=names,
+                reference_cls=reference_cls,
+            )
 
     path = Path(path).expanduser().resolve()
 

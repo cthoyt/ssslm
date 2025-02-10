@@ -245,7 +245,7 @@ class TestModel(unittest.TestCase):
         self.assertEqual(expected_literal_mappings, literal_mappings)
 
     @responses.activate
-    def test_read_remote_gz(self) -> None:
+    def test_read_gz(self) -> None:
         """Test reading remote gzipped-file."""
         expected_literal_mappings = [
             LiteralMapping(reference=TR_1, text="test", predicate=v.has_label),
@@ -254,11 +254,18 @@ class TestModel(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory).joinpath("test.tsv.gz")
             ssslm.write_literal_mappings(expected_literal_mappings, path)
+
+            # first, test that reading from path works
+            literal_mappings = ssslm.read_literal_mappings(path)
+            self.assertEqual(expected_literal_mappings, literal_mappings)
+
+            # then, set up mocking URL for using requests
             responses.add(
                 responses.GET,
                 url,
-                path.read_text(),
+                path.read_bytes(),
             )
+
         literal_mappings = ssslm.read_literal_mappings(url)
         self.assertEqual(expected_literal_mappings, literal_mappings)
 
