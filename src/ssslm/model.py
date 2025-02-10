@@ -33,6 +33,7 @@ __all__ = [
     "group_literal_mappings",
     "lint_literal_mappings",
     "literal_mappings_to_df",
+    "literal_mappings_to_gilda",
     "read_literal_mappings",
     "remap_literal_mappings",
     "write_literal_mappings",
@@ -254,7 +255,7 @@ class LiteralMapping(BaseModel):
 
         """
         if not self.name:
-            raise ValueError("can't make a Gilda term without a label")
+            raise ValueError(f"can't make a Gilda term without a label for {self.reference.pair}")
         if self.taxon and self.taxon.prefix.lower() != "ncbitaxon":
             raise ValueError("NCBITaxon reference is required to convert to gilda.")
         return _gilda_term(
@@ -264,6 +265,22 @@ class LiteralMapping(BaseModel):
             source=self.source or self.reference.prefix,
             ncbitaxon_id=self.taxon.identifier if self.taxon else None,
         )
+
+
+def literal_mappings_to_gilda(
+    literal_mappings: Iterable[LiteralMapping], *, on_error: Literal["ignore", "raise"] = "raise"
+) -> list[gilda.Term]:
+    """Convert literal mappings to gilda terms."""
+    gilda_terms = []
+    for literal_mapping in literal_mappings:
+        try:
+            gilda_term = literal_mapping.to_gilda()
+        except ValueError:
+            if on_error == "raise":
+                raise
+        else:
+            gilda_terms.append(gilda_term)
+    return gilda_terms
 
 
 #: See https://github.com/gyorilab/gilda/blob/ea328734f26c91189438e6d3408562f990f38644/gilda/term.py#L167C1-L167C69
