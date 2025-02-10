@@ -13,7 +13,12 @@ from curies import NamableReference, NamedReference
 from pydantic import BaseModel
 from typing_extensions import Self
 
-from .model import LiteralMapping, literal_mappings_to_gilda, read_literal_mappings
+from .model import (
+    GildaErrorPolicy,
+    LiteralMapping,
+    literal_mappings_to_gilda,
+    read_literal_mappings,
+)
 
 if TYPE_CHECKING:
     import gilda
@@ -204,6 +209,7 @@ class GildaGrounder(Grounder):
         prefix_priority: list[str] | None = None,
         grounder_cls: type[gilda.Grounder] | None = None,
         filter_duplicates: bool = True,
+        on_error: GildaErrorPolicy = "ignore",
     ) -> Self:
         """Initialize a grounder wrapping a :class:`gilda.Grounder`.
 
@@ -213,6 +219,7 @@ class GildaGrounder(Grounder):
         :param grounder_cls: A custom subclass of :class:`gilda.Grounder`, if given.
         :param filter_duplicates: Should duplicates be filtered using
             :func:`gilda.term.filter_out_duplicates`? Defaults to true.
+        :param on_error: The policy for what to do on error converting to Gilda
 
         """
         from gilda.term import filter_out_duplicates
@@ -222,7 +229,7 @@ class GildaGrounder(Grounder):
 
             grounder_cls = gilda.Grounder
 
-        terms = literal_mappings_to_gilda(literal_mappings)
+        terms = literal_mappings_to_gilda(literal_mappings, on_error=on_error)
         if filter_duplicates:
             terms = filter_out_duplicates(terms)
         grounder = grounder_cls(terms, namespace_priority=prefix_priority)
