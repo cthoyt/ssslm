@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
+import importlib.util
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Literal, TypeAlias
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias, TypeGuard, Union
 
 from curies import NamableReference, NamedReference
 from pydantic import BaseModel
 from typing_extensions import Self
 
-from .model import LiteralMapping, literal_mappings_to_gilda
+from .model import LiteralMapping, literal_mappings_to_gilda, read_literal_mappings
 
 if TYPE_CHECKING:
     import gilda
@@ -21,6 +23,7 @@ __all__ = [
     "Annotator",
     "GildaGrounder",
     "Grounder",
+    "GrounderHint",
     "Match",
     "Matcher",
     "make_grounder",
@@ -28,17 +31,47 @@ __all__ = [
 
 Implementation: TypeAlias = Literal["gilda"]
 
+#: A type for an object can be coerced into a SSSLM-backed grounder via :func:`make_grounder`
+GrounderHint: TypeAlias = Union[Iterable[LiteralMapping], str, Path, "gilda.Grounder", "Grounder"]
+
 
 def make_grounder(
-    literal_mappings: Iterable[LiteralMapping],
+    grounder_hint: GrounderHint,
     *,
     implementation: Implementation | None = None,
     **kwargs: Any,
 ) -> Grounder:
-    """Get a grounder from literal mappings."""
+    """Get a grounder from literal mappings.
+
+    :param grounder_hint: An object that can be coerced into a SSSLM-backed grounder.
+        One of: 1. A URL or file path 2. An iterable of literal mappings 3. A
+        pre-instantiated grounder or gilda grounder
+    :param implementation: If literal mappings are passed, what kind of grounder to use
+    :param kwargs: If literal mappings are passed, keyword arguments passed to the
+        construction of the grounder
+
+    :returns: A ssslm standard grounder
+
+    """
+    if isinstance(grounder_hint, Grounder):
+        return grounder_hint
+    if _is_gilda_grounder(grounder_hint):
+        return GildaGrounder(grounder_hint)
+    if isinstance(grounder_hint, str | Path):
+        grounder_hint = read_literal_mappings(grounder_hint)
+
     if implementation is None or implementation == "gilda":
-        return GildaGrounder.from_literal_mappings(literal_mappings, **kwargs)
+        return GildaGrounder.from_literal_mappings(grounder_hint, **kwargs)
     raise ValueError(f"Unsupported implementation: {implementation}")
+
+
+def _is_gilda_grounder(obj: Any) -> TypeGuard[gilda.Grounder]:
+    if not importlib.util.find_spec("gilda"):
+        return False
+
+    import gilda
+
+    return isinstance(obj, gilda.Grounder)
 
 
 class Match(BaseModel):
