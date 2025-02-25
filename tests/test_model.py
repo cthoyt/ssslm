@@ -32,7 +32,7 @@ class TestGildaIO(unittest.TestCase):
     def test_error(self) -> None:
         """Test handling an invalid gilda status."""
         with self.assertRaises(ValueError):
-            LiteralMapping._predicate_type_from_gilda("nope")
+            LiteralMapping._predicate_type_from_gilda("nope")  # type:ignore[arg-type]
 
     def test_gilda_missing_name(self) -> None:
         """Test when trying to generate a gilda term with a missing name."""
@@ -208,7 +208,7 @@ class TestModel(unittest.TestCase):
             self.assertEqual(literal_mappings, reloaded_synonyms)
 
         with self.assertRaises(ValueError):
-            ssslm.write_literal_mappings(literal_mappings, path, writer="nope")
+            ssslm.write_literal_mappings(literal_mappings, path, writer="nope")  # type:ignore[arg-type]
 
     def test_gilda_io_roundtrip(self) -> None:
         """Test gilda roundtrip."""
@@ -305,7 +305,10 @@ class TestModel(unittest.TestCase):
             """A custom reference that checks the prefix."""
 
             @model_validator(mode="before")
-            def validate_identifier(cls, values):  # noqa
+            def validate_identifier(  # type:ignore
+                cls,  # noqa
+                values,
+            ):
                 """Validate the identifier."""
                 prefix = values["prefix"]
                 if prefix not in {"test.custom"}:

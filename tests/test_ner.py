@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 import gilda
-from curies import NamedReference
+from curies import NamedReference, Reference
 
 import ssslm
 from ssslm import LiteralMapping
@@ -18,7 +18,7 @@ class TestNER(unittest.TestCase):
     def test_impl_error(self) -> None:
         """Test erroring on invalid impl."""
         with self.assertRaises(ValueError):
-            make_grounder([], implementation="xxx")
+            make_grounder([], implementation="xxx")  # type:ignore[arg-type]
 
     def test_grounder(self) -> None:
         """Test getting a grounder from a single reference."""
@@ -38,7 +38,7 @@ class TestNER(unittest.TestCase):
             grounder = make_grounder(path)
             self._assert_grounder(grounder, reference, text)
 
-    def _assert_grounder(self, grounder: ssslm.Grounder, reference, text) -> None:
+    def _assert_grounder(self, grounder: ssslm.Grounder, reference: Reference, text: str) -> None:
         self.assertIsNone(grounder.get_best_match("nope"))
 
         scored_matches = grounder.get_matches(text)
