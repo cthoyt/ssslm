@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from functools import lru_cache
@@ -182,7 +183,7 @@ def _ensure_nltk() -> None:
     import pystow
 
     directory = pystow.join("nltk")
-    nltk.download("stopwords", download_dir=directory)
+    nltk.download("stopwords", download_dir=directory, quiet=True)
     nltk.data.path.append(directory)
 
     # this is cached so you don't have to keep checking
@@ -231,6 +232,8 @@ class GildaGrounder(Grounder):
 
         terms = literal_mappings_to_gilda(literal_mappings, on_error=on_error)
         if filter_duplicates:
+            # suppress logging counting of terms
+            logging.getLogger("gilda.term").setLevel(logging.WARNING)
             terms = filter_out_duplicates(terms)
         grounder = grounder_cls(terms, namespace_priority=prefix_priority)
         return cls(grounder)
