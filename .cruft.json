@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/cthoyt/cookiecutter-snekpack",
-  "commit": "eb27d1b87c67b842cb1adf73846c617af849d10b",
+  "commit": "87912afa996431d707ce0401f400bc5ac41b71e6",
   "checkout": null,
   "context": {
     "cookiecutter": {
@@ -24,7 +24,7 @@
       "__runner_tests": "py",
       "__gh_slug": "cthoyt/ssslm",
       "_template": "https://github.com/cthoyt/cookiecutter-snekpack",
-      "_commit": "eb27d1b87c67b842cb1adf73846c617af849d10b"
+      "_commit": "87912afa996431d707ce0401f400bc5ac41b71e6"
     }
   },
   "directory": null
