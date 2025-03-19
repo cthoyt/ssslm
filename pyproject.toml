@@ -56,7 +56,8 @@ dependencies = [
     "click",
 ]
 
-[project.optional-dependencies]
+# see https://peps.python.org/pep-0735/ and https://docs.astral.sh/uv/concepts/dependencies/#dependency-groups
+[dependency-groups]
 tests = [
     "pytest",
     "coverage[toml]",
@@ -70,6 +71,47 @@ docs = [
     "sphinx-click",
     "sphinx_automodapi",
 ]
+lint = [
+    "ruff",
+]
+typing = [
+    { include-group = "tests" },
+    "mypy",
+    "pydantic",
+    "types-requests",
+]
+docs-lint = [
+    { include-group = "docs" },
+    "doc8",
+]
+format-docs = [
+    { include-group = "docs" },
+    "docstrfmt",
+]
+doctests = [
+    "xdoctest",
+    "pygments",
+]
+pyroma = [
+    "pyroma",
+    "pygments",
+]
+# follow https://github.com/astral-sh/uv/issues/6298 for switching to a uv-based version bump workflow
+bump = [
+    "bump-my-version",
+]
+build = [
+    "uv",
+    "uv-build",
+]
+release = [
+    { include-group = "build" },
+    "uv",
+    "keyring",
+]
+
+# see https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#dependencies-optional-dependencies
+[project.optional-dependencies]
 # this is a slimmed-down version of requirements for gilda,
 # which gets around issues with installing heavy requirements
 # like adeft and flask
