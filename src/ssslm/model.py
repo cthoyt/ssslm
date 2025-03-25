@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TextIO, TypeAlias
 
-from curies import NamableReference, NamedReference, Reference, ReferenceTuple
+from curies import NamableReference, Reference, ReferenceTuple
 from curies import vocabulary as v
 from pydantic import BaseModel, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
@@ -220,7 +220,9 @@ class LiteralMapping(BaseModel):
         raise ValueError(f"unhandled gilda status: {status}")
 
     @classmethod
-    def from_gilda(cls, term: gilda.Term) -> LiteralMapping:
+    def from_gilda(
+        cls, term: gilda.Term, *, reference_cls: NamableReferenceType = NamableReference
+    ) -> LiteralMapping:
         """Construct a synonym from a :mod:`gilda` term.
 
         :param term: A Gilda term
@@ -235,14 +237,14 @@ class LiteralMapping(BaseModel):
         """
         predicate, synonym_type = cls._predicate_type_from_gilda(term.status)
         data = {
-            "reference": NamedReference(prefix=term.db, identifier=term.id, name=term.entry_name),
+            "reference": reference_cls(prefix=term.db, identifier=term.id, name=term.entry_name),
             "predicate": predicate,
             "text": term.text,
             "type": synonym_type,
             "source": term.source,
         }
         if term.organism:
-            data["taxon"] = Reference(prefix="NCBITaxon", identifier=term.organism)
+            data["taxon"] = reference_cls(prefix="NCBITaxon", identifier=term.organism)
         return cls.model_validate(data)
 
     def _get_gilda_status(self) -> GildaStatus:
@@ -335,9 +337,14 @@ def df_to_literal_mappings(
     df: pandas.DataFrame,
     *,
     names: Mapping[Reference, str] | None = None,
+    reference_cls: NamableReferenceType = NamableReference,
 ) -> list[LiteralMapping]:
     """Get mapping objects from a dataframe."""
-    return _from_dicts((row for _, row in df.iterrows()), names=names)
+    return _from_dicts(
+        (row for _, row in df.iterrows()),
+        names=names,
+        reference_cls=reference_cls,
+    )
 
 
 Writer = Literal["pandas", "csv"]
