@@ -9,6 +9,7 @@ Simple Standard for Sharing Literal Mappings |release| Documentation
     installation
     usage
     cli
+    ner
 
 Indices and Tables
 ------------------
