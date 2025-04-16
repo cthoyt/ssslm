@@ -91,8 +91,10 @@ Pre-constructed lexica
 ~~~~~~~~~~~~~~~~~~~~~~
 
 In the following example, we load two pre-constructed lexica for diseases/phenotypes and
-for anatomical terms from the Biolexica project. These lexica are the union of multiple
-ontologies/databases that have been deduplicated using mappings assembled by SeMRA.
+for anatomical terms from the `Biolexica project
+<https://github.com/biopragmatics/biolexica>`_. These lexica are the union of multiple
+ontologies/databases that have been deduplicated using mappings assembled by `SeMRA
+<https://github.com/biopragmatics/semra>`_.
 
 These lexica are good when you're not sure what's the best vocabulary for your given
 entity type.
@@ -106,6 +108,10 @@ entity type.
 
     phenotype_grounder = ssslm.make_grounder(mappings_fmt.format(key="phenotype"))
     anatomy_grounder = ssslm.make_grounder(mappings_fmt.format(key="anatomy"))
+
+    # you can also do the following, if you `pip install biolexica`:
+    # import biolexica
+    # phenotype_grounder = biolexica.load_grounder("phenotype")
 
     data_url = "https://raw.githubusercontent.com/OBOAcademy/obook/master/docs/tutorial/linking_data/data.csv"
     df = pd.read_csv(data_url)
