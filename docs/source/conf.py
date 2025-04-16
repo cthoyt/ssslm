@@ -244,6 +244,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "pandas": ("https://pandas.pydata.org/docs", None),
     "curies": ("https://curies.readthedocs.io/en/latest", None),
+    "pyobo": ("https://pyobo.readthedocs.io/en/latest", None),
     "biolexica": ("https://biolexica.readthedocs.io/en/latest", None),
     "gilda": ("https://gilda.readthedocs.io/en/latest", None),
     "nltk": ("https://nltk.readthedocs.io/en/latest", None),

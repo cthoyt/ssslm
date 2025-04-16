@@ -87,3 +87,20 @@ RAT     F 344/N LUNG           ADENOCARCINOMA bto:0000763 prefix='bto' identifie
 MOUSE   B6C3F1  NOSE           INFLAMMATION   bto:0000840 prefix='bto' identifier='0000840' name='nose'           symp:0000061  prefix='symp' identifier='0000061' name='inflammation'
 RAT     F 344/N ADRENAL CORTEX NECROSIS       bto:0000045 prefix='bto' identifier='0000045' name='adrenal cortex' symp:0000132  prefix='symp' identifier='0000132' name='necrosis'
 ======= ======= ============== ============== =========== ======================================================= ============= ======================================================
+
+.. note::
+
+    If you're looking for just grounding to just a single namespace, and not a
+    pre-consolidated lexicon from Biolexica, you can use :func:`pyobo.get_grounder`
+    like:
+
+    .. code-block:: python
+
+        import pyobo
+
+        uberon_grounder = pyobo.get_grounder("uberon")
+        uberon_grounder.ground_pandas_df(df, "organ", target_column="uberon_curie")
+
+
+    This functionality requires having the latest development version of PyOBO installed
+    from https://github.com/biopragmatics/pyobo.
