@@ -100,6 +100,11 @@ ontologies/databases that have been deduplicated using mappings assembled by `Se
 These lexica are good when you're not sure what's the best vocabulary for your given
 entity type.
 
+.. warning::
+
+    Pre-construction of lexica in the Biolexica project is part of ongoing research, and
+    is subject to change.
+
 .. code-block:: python
 
     import pandas as pd
