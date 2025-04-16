@@ -30,7 +30,8 @@ int the second-to-last column then for diseases in the last column. The example 
 shows two different flavors of grounding for both entity types:
 
 1. By adding a column ``organ_curie`` that contains string representations of the
-   references to external ontologies like the Brenda Tissue Ontology (BTO).
+   references to external ontologies like the Uber Anatomy Ontology (UBERON) and Brenda
+   Tissue Ontology (BTO).
 2. By adding a column ``organ_reference`` that contains a data structure with the
    prefix, identifier, and name of the references.
 3. By adding a column ``disease_curie`` that contains string representations of the
