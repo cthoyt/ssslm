@@ -112,6 +112,7 @@ entity type.
     # you can also do the following, if you `pip install biolexica`:
     # import biolexica
     # phenotype_grounder = biolexica.load_grounder("phenotype")
+    # anatomy_grounder = biolexica.load_grounder("anatomy")
 
     data_url = "https://raw.githubusercontent.com/OBOAcademy/obook/master/docs/tutorial/linking_data/data.csv"
     df = pd.read_csv(data_url)
