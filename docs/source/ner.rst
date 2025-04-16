@@ -8,29 +8,33 @@ API and data model encoded with :mod:`pydantic` models.
 Case Study 1
 ------------
 
-In the following example, we load a pre-constructed lexicon for diseases and phenotypes
-from the Biolexica project. We then apply it to a small table from the OBO Academy's
-tutorial `From Tables to Linked Data
+In the following example, we load two pre-constructed lexica for diseases/phenotypes and
+for anatomical terms from the Biolexica project. We then apply it to a small table from
+the OBO Academy's tutorial `From Tables to Linked Data
 <https://oboacademy.github.io/obook/tutorial/linking-data/>`_ to demonstrate grounding.
 
 The initial table looks like this:
 
-======= ======= ==============
-species strain  disease
-======= ======= ==============
-RAT     F 344/N ADENOCARCINOMA
-MOUSE   B6C3F1  INFLAMMATION
-RAT     F 344/N NECROSIS
-======= ======= ==============
+======= ======= ============== ==============
+species strain  organ          disease
+======= ======= ============== ==============
+RAT     F 344/N LUNG           ADENOCARCINOMA
+MOUSE   B6C3F1  NOSE           INFLAMMATION
+RAT     F 344/N ADRENAL CORTEX NECROSIS
+======= ======= ============== ==============
 
-Our goal is to look up the best possible ontology/database identifiers for diseases in
-the second-to-last column. The following code accomplishes this in two different
-flavors:
+Our goal is to look up the best possible ontology/database identifiers first for organs
+int the second-to-last column then for diseases in the last column. The example code
+shows two different flavors of grounding for both entity types:
 
-1. By adding a column ``disease_curie`` that contains string representations of the
+1. By adding a column ``organ_curie`` that contains string representations of the
+   references to external ontologies like the Brenda Tissue Ontology (BTO).
+2. By adding a column ``organ_reference`` that contains a data structure with the
+   prefix, identifier, and name of the references.
+3. By adding a column ``disease_curie`` that contains string representations of the
    references to external ontologies like the Disease Ontology (DOID) and Symptom
    Ontology (SYMP).
-2. By adding a column ``disease_reference`` that contains a data structure with the
+4. By adding a column ``disease_reference`` that contains a data structure with the
    prefix, identifier, and name of the references.
 
 .. code-block:: python
@@ -38,37 +42,45 @@ flavors:
     import pandas as pd
     import ssslm
 
-    INDEX = "phenotype"
-    mappings_url = f"https://github.com/biopragmatics/biolexica/raw/main/lexica/{INDEX}/{INDEX}.ssslm.tsv.gz"
+    mappings_fmt = "https://github.com/biopragmatics/biolexica/raw/main/lexica/{key}/{key}.ssslm.tsv.gz"
 
-    grounder = ssslm.make_grounder(mappings_url)
+    phenotype_grounder = ssslm.make_grounder(mappings_fmt.format(key="phenotype"))
+    anatomy_grounder = ssslm.make_grounder(mappings_fmt.format(key="anatomy"))
 
     data_url = "https://raw.githubusercontent.com/OBOAcademy/obook/master/docs/tutorial/linking_data/data.csv"
     df = pd.read_csv(data_url)
-    df = df[["species", "strain", "disease"]]
+    df = df[["species", "strain", "organ", "disease"]]
     print(df.to_markdown(tablefmt="rst", index=False))
+
+    # this adds a new column `organ_curie` that has strings
+    # for the Bioregistry-standardized CURIEs
+    anatomy_grounder.ground_pandas_df(df, "organ", target_column="organ_curie")
+
+    # this adds a new column `organ_reference` that has reference objects
+    # for Bioregistry-standardized references (e.g., pre-parsed prefix, identifier, and name)
+    anatomy_grounder.ground_pandas_df(
+        df, "organ", target_column="organ_reference", target_type="reference"
+    )
 
     # this adds a new column `disease_curie` that has strings
     # for the Bioregistry-standardized CURIEs
-    grounder.ground_pandas_df(df, "disease", target_column="disease_curie")
+    phenotype_grounder.ground_pandas_df(df, "disease", target_column="disease_curie")
 
     # this adds a new column `disease_curie` that has reference objects
     # for Bioregistry-standardized references (e.g., pre-parsed prefix, identifier, and name)
-    grounder.ground_pandas_df(
+    phenotype_grounder.ground_pandas_df(
         df, "disease", target_column="disease_reference", target_type="reference"
     )
 
+    # print the final dataframe to show below
     print(df.to_markdown(tablefmt="rst", index=False))
 
 Here's what it looks like in the end:
 
-======= ======= ============== ============= ==================================
-species strain  disease        disease_curie disease_reference
-======= ======= ============== ============= ==================================
-RAT     F 344/N ADENOCARCINOMA doid:299      prefix='doid' identifier='299'
-                                             name='adenocarcinoma'
-MOUSE   B6C3F1  INFLAMMATION   symp:0000061  prefix='symp' identifier='0000061'
-                                             name='inflammation'
-RAT     F 344/N NECROSIS       symp:0000132  prefix='symp' identifier='0000132'
-                                             name='necrosis'
-======= ======= ============== ============= ==================================
+======= ======= ============== ============== =========== ======================================================= ============= ======================================================
+species strain  organ          disease        organ_curie organ_reference                                         disease_curie disease_reference
+======= ======= ============== ============== =========== ======================================================= ============= ======================================================
+RAT     F 344/N LUNG           ADENOCARCINOMA bto:0000763 prefix='bto' identifier='0000763' name='lung'           doid:299      prefix='doid' identifier='299' name='adenocarcinoma'
+MOUSE   B6C3F1  NOSE           INFLAMMATION   bto:0000840 prefix='bto' identifier='0000840' name='nose'           symp:0000061  prefix='symp' identifier='0000061' name='inflammation'
+RAT     F 344/N ADRENAL CORTEX NECROSIS       bto:0000045 prefix='bto' identifier='0000045' name='adrenal cortex' symp:0000132  prefix='symp' identifier='0000132' name='necrosis'
+======= ======= ============== ============== =========== ======================================================= ============= ======================================================
