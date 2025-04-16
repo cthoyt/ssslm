@@ -5,8 +5,8 @@ The SSSLM software package contains a submodule :mod:`ssslm.ner` for named entit
 recognition (NER) and named entity normalization (NEN) that provides a standard class
 API and data model encoded with :mod:`pydantic` models.
 
-Case Study 1
-------------
+Grounding using pre-constructed lexica
+--------------------------------------
 
 In the following example, we load two pre-constructed lexica for diseases/phenotypes and
 for anatomical terms from the Biolexica project. By default, SSSLM wraps the NER/NEN
@@ -88,18 +88,50 @@ MOUSE   B6C3F1  NOSE           INFLAMMATION   bto:0000840 prefix='bto' identifie
 RAT     F 344/N ADRENAL CORTEX NECROSIS       bto:0000045 prefix='bto' identifier='0000045' name='adrenal cortex' symp:0000132  prefix='symp' identifier='0000132' name='necrosis'
 ======= ======= ============== ============== =========== ======================================================= ============= ======================================================
 
-.. note::
+Grounding using a single vocabulary
+-----------------------------------
 
-    If you're looking for just grounding to just a single namespace, and not a
-    pre-consolidated lexicon from Biolexica, you can use :func:`pyobo.get_grounder`
-    like:
+If you're looking for just grounding to just a single namespace, and not a
+pre-consolidated lexicon from Biolexica, you can use :func:`pyobo.get_grounder` like:
 
-    .. code-block:: python
-
-        import pyobo
-
-        uberon_grounder = pyobo.get_grounder("uberon")
-        uberon_grounder.ground_pandas_df(df, "organ", target_column="uberon_curie")
+.. warning::
 
     This functionality requires having the latest development version of PyOBO installed
     from https://github.com/biopragmatics/pyobo.
+
+.. code-block:: python
+
+    import pandas as pd
+    import pyobo
+
+    uberon_grounder = pyobo.get_grounder("uberon")
+
+    data_url = "https://raw.githubusercontent.com/OBOAcademy/obook/master/docs/tutorial/linking_data/data.csv"
+    df = pd.read_csv(data_url)
+    df = df[["species", "strain", "organ"]]
+
+    # this adds a new column `organ_curie` that has strings
+    # for the Bioregistry-standardized CURIEs
+    uberon_grounder.ground_pandas_df(df, "organ", target_column="organ_curie")
+
+    # this adds a new column `organ_reference` that has reference objects
+    # for Bioregistry-standardized references (e.g., pre-parsed prefix, identifier, and name)
+    uberon_grounder.ground_pandas_df(
+        df, "organ", target_column="organ_reference", target_type="reference"
+    )
+
+    # print the final dataframe to show below
+    print(df.to_markdown(tablefmt="rst", index=False))
+
+This returns the following:
+
+======= ======= ============== ============== ====================================
+species strain  organ          organ_curie    organ_reference
+======= ======= ============== ============== ====================================
+RAT     F 344/N LUNG           uberon:0002048 prefix='uberon' identifier='0002048'
+                                              name='lung'
+MOUSE   B6C3F1  NOSE           uberon:0000004 prefix='uberon' identifier='0000004'
+                                              name='nose'
+RAT     F 344/N ADRENAL CORTEX uberon:0001235 prefix='uberon' identifier='0001235'
+                                              name='adrenal cortex'
+======= ======= ============== ============== ====================================
