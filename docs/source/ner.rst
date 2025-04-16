@@ -9,9 +9,12 @@ Case Study 1
 ------------
 
 In the following example, we load two pre-constructed lexica for diseases/phenotypes and
-for anatomical terms from the Biolexica project. We then apply it to a small table from
-the OBO Academy's tutorial `From Tables to Linked Data
-<https://oboacademy.github.io/obook/tutorial/linking-data/>`_ to demonstrate grounding.
+for anatomical terms from the Biolexica project. By default, SSSLM wraps the NER/NEN
+system implemented in :mod:`gilda`, but is exensible for other systems.
+
+We then apply it to a small table from the OBO Academy's tutorial `From Tables to Linked
+Data <https://oboacademy.github.io/obook/tutorial/linking-data/>`_ to demonstrate
+grounding.
 
 The initial table looks like this:
 
