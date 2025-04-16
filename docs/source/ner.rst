@@ -101,6 +101,5 @@ RAT     F 344/N ADRENAL CORTEX NECROSIS       bto:0000045 prefix='bto' identifie
         uberon_grounder = pyobo.get_grounder("uberon")
         uberon_grounder.ground_pandas_df(df, "organ", target_column="uberon_curie")
 
-
     This functionality requires having the latest development version of PyOBO installed
     from https://github.com/biopragmatics/pyobo.
