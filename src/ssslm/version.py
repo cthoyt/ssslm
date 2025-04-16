@@ -1,7 +1,6 @@
 """Version information for :mod:`ssslm`.
 
 Run with ``python -m ssslm.version``
-
 """
 
 import os
