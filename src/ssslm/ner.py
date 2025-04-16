@@ -223,8 +223,6 @@ class GildaGrounder(Grounder):
         :param on_error: The policy for what to do on error converting to Gilda
 
         """
-        from gilda.term import filter_out_duplicates
-
         if grounder_cls is None:
             import gilda
 
@@ -232,6 +230,8 @@ class GildaGrounder(Grounder):
 
         terms = literal_mappings_to_gilda(literal_mappings, on_error=on_error)
         if filter_duplicates:
+            from gilda.term import filter_out_duplicates
+
             # suppress logging counting of terms
             logging.getLogger("gilda.term").setLevel(logging.WARNING)
             terms = filter_out_duplicates(terms)
