@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import enum
 import importlib.util
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-from functools import lru_cache
+from functools import lru_cache, partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, TypeAlias, TypeGuard, Union
 
@@ -23,6 +24,7 @@ from .model import (
 
 if TYPE_CHECKING:
     import gilda
+    import pandas as pd
 
 __all__ = [
     "Annotation",
@@ -32,6 +34,7 @@ __all__ = [
     "GrounderHint",
     "Match",
     "Matcher",
+    "PandasReturnType",
     "make_grounder",
 ]
 
@@ -151,6 +154,17 @@ class Annotation(BaseModel):
         return self.text[self.start : self.end]
 
 
+class PandasReturnType(enum.Enum):
+    """How should pandas columns be filled."""
+
+    #: Fill columns with stringified CURIEs
+    curie = enum.auto()
+    #: Fill columns with :mod:`curies.NamableReference` objects
+    reference = enum.auto()
+    #: Fill columns with :mod:`ssslm.Match` objects
+    match = enum.auto()
+
+
 class Matcher(ABC):
     """An interface for a grounder."""
 
@@ -162,6 +176,63 @@ class Matcher(ABC):
         """Get matches in the SSSLM format."""
         matches = self.get_matches(text, **kwargs)
         return matches[0] if matches else None
+
+    def ground_pandas_df(
+        self,
+        df: pd.DataFrame,
+        column: str | int,
+        *,
+        target_column: None | str | int = None,
+        return_type: PandasReturnType = PandasReturnType.curie,
+        **kwargs: Any,
+    ) -> None:
+        """Ground the elements of a column in a Pandas dataframe as CURIEs, in-place.
+
+        :param df: A pandas dataframe
+        :param column:
+            The column to ground. This column contains text corresponding
+            to named entities' labels or synonyms
+        :param target_column:
+            The column where to put the groundings (either a CURIE string,
+            or None). It's possible to create a new column when passing
+            a string for this argument. If not given, will create a new
+            column name like ``<source column>_grounded``.
+        :param return_type:
+            The type to fill columns with
+        :param kwargs:
+            Keyword arguments passed to :meth:`Grounder.ground`, could
+            include context, organisms, or namespaces.
+
+        .. code-block:: python
+
+            import pandas as pd
+            import gilda
+
+            url = "https://raw.githubusercontent.com/OBOAcademy/obook/master/docs/tutorial/linking_data/data.csv"
+            df = pd.read_csv(url)
+            gilda.ground_df(df, source_column="disease", target_column="disease_curie")
+        """
+        if target_column is None:
+            target_column = f"{column}_grounded"
+        func = partial(_match_helper, matcher=self, return_type=return_type, **kwargs)
+        df[target_column] = df[column].map(func)
+
+
+def _match_helper(
+    text: str, matcher: Matcher, return_type: PandasReturnType, **kwargs: Any
+) -> str | None | Match | NamableReference:
+    if not isinstance(text, str):  # this catches pd.nan's
+        return None
+    match = matcher.get_best_match(text, **kwargs)
+    if not match:
+        return None
+    elif return_type == PandasReturnType.curie:
+        return match.curie
+    elif return_type == PandasReturnType.match:
+        return match
+    elif return_type == PandasReturnType.reference:
+        return match.reference
+    raise TypeError
 
 
 class Annotator(ABC):
