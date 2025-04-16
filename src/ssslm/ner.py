@@ -34,7 +34,7 @@ __all__ = [
     "GrounderHint",
     "Match",
     "Matcher",
-    "PandasReturnType",
+    "PandasTargetType",
     "make_grounder",
 ]
 
@@ -154,7 +154,7 @@ class Annotation(BaseModel):
         return self.text[self.start : self.end]
 
 
-class PandasReturnType(enum.Enum):
+class PandasTargetType(enum.Enum):
     """How should pandas columns be filled."""
 
     #: Fill columns with stringified CURIEs
@@ -183,7 +183,7 @@ class Matcher(ABC):
         column: str | int,
         *,
         target_column: None | str | int = None,
-        return_type: PandasReturnType = PandasReturnType.curie,
+        target_type: PandasTargetType | str = PandasTargetType.curie,
         **kwargs: Any,
     ) -> None:
         """Ground the elements of a column in a Pandas dataframe as CURIEs, in-place.
@@ -197,7 +197,7 @@ class Matcher(ABC):
             or None). It's possible to create a new column when passing
             a string for this argument. If not given, will create a new
             column name like ``<source column>_grounded``.
-        :param return_type:
+        :param target_type:
             The type to fill columns with
         :param kwargs:
             Keyword arguments passed to :meth:`Grounder.ground`, could
@@ -206,31 +206,39 @@ class Matcher(ABC):
         .. code-block:: python
 
             import pandas as pd
-            import gilda
+            import ssslm
 
-            url = "https://raw.githubusercontent.com/OBOAcademy/obook/master/docs/tutorial/linking_data/data.csv"
-            df = pd.read_csv(url)
-            gilda.ground_df(df, source_column="disease", target_column="disease_curie")
+            INDEX = "phenotype"
+            mappings_url = f"https://github.com/biopragmatics/biolexica/raw/main/lexica/{INDEX}/{INDEX}.ssslm.tsv.gz"
+
+            grounder = ssslm.make_grounder(mappings_url)
+
+            data_url = "https://raw.githubusercontent.com/OBOAcademy/obook/master/docs/tutorial/linking_data/data.csv"
+            df = pd.read_csv(data_url)
+
+            grounder.ground_df(df, "disease", target_column="disease_curie")
         """
         if target_column is None:
             target_column = f"{column}_grounded"
-        func = partial(_match_helper, matcher=self, return_type=return_type, **kwargs)
+        func = partial(_match_helper, matcher=self, return_type=target_type, **kwargs)
         df[target_column] = df[column].map(func)
 
 
 def _match_helper(
-    text: str, matcher: Matcher, return_type: PandasReturnType, **kwargs: Any
+    text: str, matcher: Matcher, target_type: PandasTargetType | str, **kwargs: Any
 ) -> str | None | Match | NamableReference:
     if not isinstance(text, str):  # this catches pd.nan's
         return None
     match = matcher.get_best_match(text, **kwargs)
     if not match:
         return None
-    elif return_type == PandasReturnType.curie:
+    if isinstance(target_type, str):
+        target_type = PandasTargetType[target_type]
+    if target_type == PandasTargetType.curie:
         return match.curie
-    elif return_type == PandasReturnType.match:
+    elif target_type == PandasTargetType.match:
         return match
-    elif return_type == PandasReturnType.reference:
+    elif target_type == PandasTargetType.reference:
         return match.reference
     raise TypeError
 

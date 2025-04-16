@@ -10,7 +10,7 @@ from curies import NamedReference, Reference
 
 import ssslm
 from ssslm import LiteralMapping
-from ssslm.ner import Match, PandasReturnType, make_grounder
+from ssslm.ner import Match, make_grounder
 
 
 class TestNER(unittest.TestCase):
@@ -82,15 +82,26 @@ class TestNER(unittest.TestCase):
         df = pd.DataFrame(rows, columns=columns)
 
         grounder.ground_pandas_df(df, column, target_column="test1")
+        grounder.ground_pandas_df(df, column, target_column="test2", target_type="curie")
         grounder.ground_pandas_df(
-            df, column, target_column="test2", return_type=PandasReturnType.curie
+            df,
+            column,
+            target_column="test3",
+            target_type="reference",
         )
         grounder.ground_pandas_df(
-            df, column, target_column="test3", return_type=PandasReturnType.reference
+            df,
+            column,
+            target_column="test4",
+            target_type="match",
         )
-        grounder.ground_pandas_df(
-            df, column, target_column="test4", return_type=PandasReturnType.match
-        )
+
+        with self.assertRaises(KeyError):
+            grounder.ground_pandas_df(
+                df,
+                column,
+                target_type="nope",
+            )
 
         self.assertEqual(
             [
