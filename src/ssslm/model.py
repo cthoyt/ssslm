@@ -398,6 +398,7 @@ def read_literal_mappings(
     delimiter: str | None = None,
     names: Mapping[Reference, str] | None = None,
     reference_cls: NamableReferenceType = NamableReference,
+    show_progress: bool = False,
 ) -> list[LiteralMapping]:
     """Load literal mappings from a file.
 
@@ -408,6 +409,7 @@ def read_literal_mappings(
     :param reference_cls: The class used to parse references. E.g., swap out for
         :class:`pyobo.Reference` to automatically do Bioregistry validation on
         references.
+    :param show_progress: Should a progress bar be shown? Defaults to false.
 
     :returns: A list of literal mappings parsed from the table
 
@@ -423,6 +425,7 @@ def read_literal_mappings(
                     delimiter=delimiter,
                     names=names,
                     reference_cls=reference_cls,
+                    show_progress=show_progress,
                 )
         else:
             res = requests.get(path, timeout=15)
@@ -432,15 +435,22 @@ def read_literal_mappings(
                 delimiter=delimiter,
                 names=names,
                 reference_cls=reference_cls,
+                show_progress=show_progress,
             )
 
     path = Path(path).expanduser().resolve()
 
     if path.suffix == ".numbers":
-        return _parse_numbers(path, names=names)
+        return _parse_numbers(path, names=names, show_progress=show_progress)
 
     with _safe_open(path) as file:
-        return _from_lines(file, delimiter=delimiter, names=names, reference_cls=reference_cls)
+        return _from_lines(
+            file,
+            delimiter=delimiter,
+            names=names,
+            reference_cls=reference_cls,
+            show_progress=show_progress,
+        )
 
 
 def read_gilda_terms(path: str | Path) -> list[LiteralMapping]:
@@ -489,6 +499,7 @@ def _parse_numbers(
     *,
     names: Mapping[Reference, str] | None = None,
     reference_cls: NamableReferenceType = NamableReference,
+    show_progress: bool = False,
 ) -> list[LiteralMapping]:
     # code example from https://pypi.org/project/numbers-parser
     import numbers_parser
@@ -501,6 +512,7 @@ def _parse_numbers(
         (dict(zip(header, row, strict=False)) for row in rows),
         names=names,
         reference_cls=reference_cls,
+        show_progress=show_progress,
     )
 
 
@@ -510,11 +522,13 @@ def _from_lines(
     delimiter: str | None = None,
     names: Mapping[Reference, str] | None = None,
     reference_cls: NamableReferenceType = NamableReference,
+    show_progress: bool = False,
 ) -> list[LiteralMapping]:
     return _from_dicts(
         csv.DictReader(lines, delimiter=delimiter or "\t"),
         names=names,
         reference_cls=reference_cls,
+        show_progress=show_progress,
     )
 
 
@@ -523,9 +537,17 @@ def _from_dicts(
     *,
     names: Mapping[Reference, str] | None = None,
     reference_cls: NamableReferenceType = NamableReference,
+    show_progress: bool = False,
 ) -> list[LiteralMapping]:
     rv = []
-    for i, record in enumerate(dicts, start=2):
+    it = tqdm(
+        dicts,
+        unit_scale=True,
+        unit="mapping",
+        desc="parsing literal mappings",
+        disable=not show_progress,
+    )
+    for i, record in enumerate(it, start=2):
         record = {k: v for k, v in record.items() if k and v and k.strip() and v.strip()}
         if record:
             try:
