@@ -218,7 +218,7 @@ class Matcher(ABC):
         matches = self.get_matches(text, **kwargs)
         return matches[0] if matches else None
 
-    def ground_pandas_df(
+    def ground_df(
         self,
         df: pd.DataFrame,
         column: str | int,
@@ -253,7 +253,7 @@ class Matcher(ABC):
             data_url = "https://raw.githubusercontent.com/OBOAcademy/obook/master/docs/tutorial/linking_data/data.csv"
             df = pd.read_csv(data_url)
 
-            grounder.ground_pandas_df(df, "disease", target_column="disease_curie")
+            grounder.ground_df(df, "disease", target_column="disease_curie")
         """
         if target_column is None:
             target_column = f"{column}_grounded"

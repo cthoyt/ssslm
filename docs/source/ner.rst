@@ -64,11 +64,11 @@ grounder via PyOBO's :func:`pyobo.get_grounder` like:
 
     # this adds a new column `organ_curie` that has strings
     # for the Bioregistry-standardized CURIEs
-    uberon_grounder.ground_pandas_df(df, "organ", target_column="organ_curie")
+    uberon_grounder.ground_df(df, "organ", target_column="organ_curie")
 
     # this adds a new column `organ_reference` that has reference objects
     # for Bioregistry-standardized references (e.g., pre-parsed prefix, identifier, and name)
-    uberon_grounder.ground_pandas_df(
+    uberon_grounder.ground_df(
         df, "organ", target_column="organ_reference", target_type="reference"
     )
 
@@ -127,21 +127,21 @@ entity type.
 
     # this adds a new column `organ_curie` that has strings
     # for the Bioregistry-standardized CURIEs
-    anatomy_grounder.ground_pandas_df(df, "organ", target_column="organ_curie")
+    anatomy_grounder.ground_df(df, "organ", target_column="organ_curie")
 
     # this adds a new column `organ_reference` that has reference objects
     # for Bioregistry-standardized references (e.g., pre-parsed prefix, identifier, and name)
-    anatomy_grounder.ground_pandas_df(
+    anatomy_grounder.ground_df(
         df, "organ", target_column="organ_reference", target_type="reference"
     )
 
     # this adds a new column `disease_curie` that has strings
     # for the Bioregistry-standardized CURIEs
-    phenotype_grounder.ground_pandas_df(df, "disease", target_column="disease_curie")
+    phenotype_grounder.ground_df(df, "disease", target_column="disease_curie")
 
     # this adds a new column `disease_curie` that has reference objects
     # for Bioregistry-standardized references (e.g., pre-parsed prefix, identifier, and name)
-    phenotype_grounder.ground_pandas_df(
+    phenotype_grounder.ground_df(
         df, "disease", target_column="disease_reference", target_type="reference"
     )
 

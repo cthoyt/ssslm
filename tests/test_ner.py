@@ -81,15 +81,15 @@ class TestNER(unittest.TestCase):
         ]
         df = pd.DataFrame(rows, columns=columns)
 
-        grounder.ground_pandas_df(df, column, target_column="test1")
-        grounder.ground_pandas_df(df, column, target_column="test2", target_type="curie")
-        grounder.ground_pandas_df(
+        grounder.ground_df(df, column, target_column="test1")
+        grounder.ground_df(df, column, target_column="test2", target_type="curie")
+        grounder.ground_df(
             df,
             column,
             target_column="test3",
             target_type="reference",
         )
-        grounder.ground_pandas_df(
+        grounder.ground_df(
             df,
             column,
             target_column="test4",
@@ -97,7 +97,7 @@ class TestNER(unittest.TestCase):
         )
 
         with self.assertRaises(KeyError):
-            grounder.ground_pandas_df(
+            grounder.ground_df(
                 df,
                 column,
                 target_type="nope",
