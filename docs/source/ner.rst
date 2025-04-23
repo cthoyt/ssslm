@@ -46,12 +46,19 @@ Single vocabulary
 If you're looking to ground a column to a single ontology/database, you can load a SSSLM
 grounder via PyOBO's :func:`pyobo.get_grounder` like:
 
-.. warning::
-
-    This functionality requires having the latest development version of PyOBO installed
-    from https://github.com/biopragmatics/pyobo.
+Before running the following, make sure you do ``pip install pandas ssslm[gilda-slim]
+pyobo`` and have a minimum PyOBO version of v0.12.0.
 
 .. code-block:: python
+
+    # /// script
+    # requires-python = ">=3.10"
+    # dependencies = [
+    #     "pandas",
+    #     "pyobo",
+    #     "ssslm[gilda-slim]",
+    # ]
+    # ///
 
     import pandas as pd
     import pyobo
@@ -106,6 +113,14 @@ entity type.
     is subject to change.
 
 .. code-block:: python
+
+    # /// script
+    # requires-python = ">=3.10"
+    # dependencies = [
+    #     "pandas",
+    #     "ssslm[gilda-slim]",
+    # ]
+    # ///
 
     import pandas as pd
     import ssslm
