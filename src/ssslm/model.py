@@ -233,7 +233,6 @@ class LiteralMapping(BaseModel):
 
             Gilda's data model is less detailed, so resulting synonym objects will not
             have detailed curation provenance
-
         """
         predicate, synonym_type = cls._predicate_type_from_gilda(term.status)
         data = {
@@ -259,7 +258,6 @@ class LiteralMapping(BaseModel):
         """Get this synonym as a :mod:`gilda` term.
 
         :returns: An object that can be indexed by Gilda for NER and grounding
-
         """
         if not self.name:
             raise ValueError(f"can't make a Gilda term without a label for {self.reference.pair}")
@@ -412,7 +410,6 @@ def read_literal_mappings(
     :param show_progress: Should a progress bar be shown? Defaults to false.
 
     :returns: A list of literal mappings parsed from the table
-
     """
     if isinstance(path, str) and any(path.startswith(schema) for schema in ("https://", "http://")):
         import requests
@@ -596,7 +593,6 @@ def remap_literal_mappings(
     :param progress: Should a progress bar be shown?
 
     :returns: A new list of literal mapping objects that have been remapped
-
     """
     index = group_literal_mappings(literal_mappings)
 

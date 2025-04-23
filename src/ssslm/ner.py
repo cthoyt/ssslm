@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import enum
 import importlib.util
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-from functools import lru_cache
+from functools import lru_cache, partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, TypeAlias, TypeGuard, Union
 
@@ -23,6 +24,7 @@ from .model import (
 
 if TYPE_CHECKING:
     import gilda
+    import pandas as pd
 
 __all__ = [
     "Annotation",
@@ -32,6 +34,7 @@ __all__ = [
     "GrounderHint",
     "Match",
     "Matcher",
+    "PandasTargetType",
     "make_grounder",
 ]
 
@@ -50,14 +53,55 @@ def make_grounder(
     """Get a grounder from literal mappings.
 
     :param grounder_hint: An object that can be coerced into a SSSLM-backed grounder.
-        One of: 1. A URL or file path 2. An iterable of literal mappings 3. A
-        pre-instantiated grounder or gilda grounder
+        Can be one of the following:
+
+        1. A URL or file path
+        2. An iterable of literal mappings
+        3. A pre-instantiated grounder or gilda grounder
     :param implementation: If literal mappings are passed, what kind of grounder to use
     :param kwargs: If literal mappings are passed, keyword arguments passed to the
         construction of the grounder
 
-    :returns: A ssslm standard grounder
+    :returns: A SSSLM standard grounder
 
+    A grounder can be constructed from a URL. In the following example, a pre-processed
+    lexical index of anatomical terms from UBERON, BTO, MeSH, and other resources is
+    loaded from the :mod:`biolexica` project.
+
+    .. code-block:: python
+
+        import ssslm
+
+        url = f"https://github.com/biopragmatics/biolexica/raw/main/lexica/anatomy/anatomy.ssslm.tsv.gz"
+        grounder = ssslm.make_grounder(url)
+
+        match = grounder.get_best_match("purkinje cell")
+
+    A grounder can be constructed from literal mappings that are already stored in a
+    Python object. This example uses the same lexical index as above, first loading it
+    by URL.
+
+    .. code-block:: python
+
+        import ssslm
+
+        url = f"https://github.com/biopragmatics/biolexica/raw/main/lexica/anatomy/anatomy.ssslm.tsv.gz"
+        literal_mappings = ssslm.read_literal_mappings(url)
+        grounder = ssslm.make_grounder(literal_mappings)
+
+        match = grounder.get_best_match("purkinje cell")
+
+    A grounder can be constructed from a pre-existing :mod:`gilda.Grounder` object. As
+    SSSLM is extended, this will incorporate other grounder interfaces.
+
+    .. code-block:: python
+
+        import ssslm
+        from gilda.api import grounder as gilda_default_grounder
+
+        grounder = ssslm.make_grounder(gilda_default_grounder)
+
+        match = grounder.get_best_match("purkinje cell")
     """
     if isinstance(grounder_hint, Grounder):
         return grounder_hint
@@ -151,6 +195,17 @@ class Annotation(BaseModel):
         return self.text[self.start : self.end]
 
 
+class PandasTargetType(enum.Enum):
+    """How should pandas columns be filled."""
+
+    #: Fill columns with stringified CURIEs
+    curie = enum.auto()
+    #: Fill columns with :mod:`curies.NamableReference` objects
+    reference = enum.auto()
+    #: Fill columns with :mod:`ssslm.Match` objects
+    match = enum.auto()
+
+
 class Matcher(ABC):
     """An interface for a grounder."""
 
@@ -162,6 +217,67 @@ class Matcher(ABC):
         """Get matches in the SSSLM format."""
         matches = self.get_matches(text, **kwargs)
         return matches[0] if matches else None
+
+    def ground_df(
+        self,
+        df: pd.DataFrame,
+        column: str | int,
+        *,
+        target_column: None | str | int = None,
+        target_type: PandasTargetType | str = PandasTargetType.curie,
+        **kwargs: Any,
+    ) -> None:
+        """Ground the elements of a column in a Pandas dataframe as CURIEs, in-place.
+
+        :param df: A pandas dataframe
+        :param column: The column to ground. This column contains text corresponding to
+            named entities' labels or synonyms
+        :param target_column: The column where to put the groundings (either a CURIE
+            string, or None). It's possible to create a new column when passing a string
+            for this argument. If not given, will create a new column name like
+            ``<source column>_grounded``.
+        :param target_type: The type to fill columns with
+        :param kwargs: Keyword arguments passed to :meth:`Grounder.ground`, could
+            include context, organisms, or namespaces.
+
+        .. code-block:: python
+
+            import pandas as pd
+            import ssslm
+
+            INDEX = "phenotype"
+            mappings_url = f"https://github.com/biopragmatics/biolexica/raw/main/lexica/{INDEX}/{INDEX}.ssslm.tsv.gz"
+
+            grounder = ssslm.make_grounder(mappings_url)
+
+            data_url = "https://raw.githubusercontent.com/OBOAcademy/obook/master/docs/tutorial/linking_data/data.csv"
+            df = pd.read_csv(data_url)
+
+            grounder.ground_df(df, "disease", target_column="disease_curie")
+        """
+        if target_column is None:
+            target_column = f"{column}_grounded"
+        func = partial(_match_helper, matcher=self, target_type=target_type, **kwargs)
+        df[target_column] = df[column].map(func)
+
+
+def _match_helper(
+    text: str, matcher: Matcher, target_type: PandasTargetType | str, **kwargs: Any
+) -> str | None | Match | NamableReference:
+    if not isinstance(text, str):  # this catches pd.nan's
+        return None
+    match = matcher.get_best_match(text, **kwargs)
+    if not match:
+        return None
+    if isinstance(target_type, str):
+        target_type = PandasTargetType[target_type]
+    if target_type == PandasTargetType.curie:
+        return match.curie
+    elif target_type == PandasTargetType.match:
+        return match
+    elif target_type == PandasTargetType.reference:
+        return match.reference
+    raise TypeError
 
 
 class Annotator(ABC):
@@ -221,7 +337,6 @@ class GildaGrounder(Grounder):
         :param filter_duplicates: Should duplicates be filtered using
             :func:`gilda.term.filter_out_duplicates`? Defaults to true.
         :param on_error: The policy for what to do on error converting to Gilda
-
         """
         if grounder_cls is None:
             import gilda
