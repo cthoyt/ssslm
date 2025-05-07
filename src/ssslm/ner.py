@@ -25,6 +25,8 @@ from .model import (
 if TYPE_CHECKING:
     import gilda
     import pandas as pd
+    import spacy
+    import spacy.tokens
 
 __all__ = [
     "Annotation",
@@ -33,8 +35,10 @@ __all__ = [
     "Grounder",
     "GrounderHint",
     "Match",
+    "WrappedMatcher",
     "Matcher",
     "PandasTargetType",
+    "SpacyGrounder",
     "make_grounder",
 ]
 
@@ -261,6 +265,16 @@ class Matcher(ABC):
         df[target_column] = df[column].map(func)
 
 
+class WrappedMatcher(Matcher):
+    """A matcher that wraps another matcher, allowing for composition."""
+
+    def __init__(self, *, matcher: Matcher) -> None:
+        self._matcher = matcher
+
+    def get_matches(self, text: str, **kwargs: Any) -> list[Match]:
+        return self._matcher.get_matches(text, **kwargs)
+
+
 def _match_helper(
     text: str, matcher: Matcher, target_type: PandasTargetType | str, **kwargs: Any
 ) -> str | None | Match | NamableReference:
@@ -292,6 +306,38 @@ class Grounder(Matcher, Annotator, ABC):
     """A combine matcher and annotator."""
 
 
+class SpacyGrounder(Grounder, WrappedMatcher):
+    """An annotator that works via spacy."""
+
+    spacy_language_model: spacy.Language
+
+    def __init__(self, matcher: Matcher, spacy_model: str | spacy.Language) -> None:
+        """Create a grounder based on a pre-defined matcher and a SpaCy NER model.
+
+        :param matcher: A pre-defined matcher
+        :param spacy_model: The name of a SpaCy model. See
+            https://allenai.github.io/scispacy/ for a list of biomedical
+            and clincal NER models from :mod:`scispacy`.
+        """
+        super().__init__(matcher=matcher)
+
+        if isinstance(spacy_model, str):
+            import spacy
+
+            self.spacy_language_model = spacy.load(spacy_model)
+        else:
+            self.spacy_language_model = spacy_model
+
+    def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+        """Annotate the text using a combination of the spacy annotator, and the grounder."""
+        document: spacy.tokens.Doc = self.spacy_language_model(text)
+        return [
+            Annotation(text=text, match=match, start=entity.start_char, end=entity.end_char)
+            for entity in document.ents
+            for match in self.get_matches(entity.text, **kwargs)
+        ]
+
+
 @lru_cache(1)
 def _ensure_nltk() -> None:
     """Ensure NLTK data is downloaded properly."""
@@ -306,17 +352,19 @@ def _ensure_nltk() -> None:
     # if the package was downloaded
 
 
-class GildaGrounder(Grounder):
-    """A grounder and annotator that uses gilda as a backend."""
+class GildaMatcher(Matcher):
+    """A matcher that uses gilda as a backend."""
 
     def __init__(self, grounder: gilda.Grounder) -> None:
         """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
-        _ensure_nltk()  # very important - do this before importing gilda.ner
-
-        import gilda.ner
-
         self._grounder = grounder
-        self._annotate = gilda.ner.annotate
+
+    @classmethod
+    def default(cls) -> Self:
+        """Get the default/builtin grounder."""
+        import gilda.api
+
+        return cls(grounder=gilda.api.grounder.get_grounder())
 
     @classmethod
     def from_literal_mappings(
@@ -379,6 +427,20 @@ class GildaGrounder(Grounder):
                 text, context=context, organisms=organisms, namespaces=namespaces
             )
         ]
+
+
+class GildaGrounder(Grounder, GildaMatcher):
+    """A grounder and annotator that uses gilda as a backend."""
+
+    def __init__(self, grounder: gilda.Grounder) -> None:
+        """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
+        super().__init__(grounder)
+
+        _ensure_nltk()  # very important - do this before importing gilda.ner
+
+        import gilda.ner
+
+        self._annotate = gilda.ner.annotate
 
     def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
         """Annotate the text."""
