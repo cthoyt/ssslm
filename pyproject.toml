@@ -125,6 +125,18 @@ gilda = [
     "nltk",
     "pystow",
 ]
+scispacy = [
+    "spacy",
+    "scispacy",
+]
+en-core-sci-sm = [
+    "ssslm[scispacy]",
+    "en-core-sci-sm @ https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_sm-0.5.4.tar.gz",
+]
+en-core-sci-md = [
+    "ssslm[scispacy]",
+    "en-core-sci-md @ https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_md-0.5.4.tar.gz",
+]
 web = [
     "fastapi",
     "uvicorn",

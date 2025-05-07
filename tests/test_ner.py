@@ -1,5 +1,6 @@
 """Tests for NER."""
 
+import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,8 +10,8 @@ import pandas as pd
 from curies import NamedReference, Reference
 
 import ssslm
-from ssslm import LiteralMapping
-from ssslm.ner import Match, make_grounder
+from ssslm import GildaGrounder, LiteralMapping
+from ssslm.ner import Match, SpacyGrounder, make_grounder
 
 
 class TestNER(unittest.TestCase):
@@ -116,4 +117,31 @@ class TestNER(unittest.TestCase):
                 ],
             ],
             df.values.tolist(),
+        )
+
+    @unittest.skipUnless(
+        all(importlib.util.find_spec(name) for name in ["spacy", "scispacy", "en_core_sci_sm"]),
+        reason="Need spacy and scispacy installed to run SpaCy tests",
+    )
+    def test_spacy(self) -> None:
+        """Test spacy NER."""
+        import spacy
+
+        spacy_model = spacy.load("en_core_sci_sm")
+
+        matcher = GildaGrounder.default()
+        grounder = SpacyGrounder(
+            matcher=matcher,
+            spacy_model=spacy_model,
+        )
+        annotations = grounder.annotate(
+            "The APOE e4 mutation is correlated with risk for Alzheimer's disease."
+        )
+        annotation_index = {
+            (annotation.match.reference, annotation.start, annotation.end)
+            for annotation in annotations
+        }
+        self.assertIn(
+            (NamedReference(prefix="MESH", identifier="D000544", name="Alzheimer Disease"), 49, 68),
+            annotation_index,
         )
