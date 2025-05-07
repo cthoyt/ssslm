@@ -35,10 +35,10 @@ __all__ = [
     "Grounder",
     "GrounderHint",
     "Match",
-    "WrappedMatcher",
     "Matcher",
     "PandasTargetType",
     "SpacyGrounder",
+    "WrappedMatcher",
     "make_grounder",
 ]
 
@@ -269,9 +269,11 @@ class WrappedMatcher(Matcher):
     """A matcher that wraps another matcher, allowing for composition."""
 
     def __init__(self, *, matcher: Matcher) -> None:
+        """Instantiate the matcher around another matcher."""
         self._matcher = matcher
 
-    def get_matches(self, text: str, **kwargs: Any) -> list[Match]:
+    # docstr-coverage:excused `inherited`
+    def get_matches(self, text: str, **kwargs: Any) -> list[Match]:  # noqa:D102
         return self._matcher.get_matches(text, **kwargs)
 
 
