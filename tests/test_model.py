@@ -340,3 +340,13 @@ class TestModel(unittest.TestCase):
         self.assertEqual([r3, r4], index[TR_2])
 
         self.assertEqual({TR_1.prefix, "oboInOwl"}, ssslm.get_prefixes(literal_mappings))
+
+    def test_append(self) -> None:
+        """Test appending a single literal mapping."""
+        m1 = LiteralMapping(reference=TR_1, text="a")
+        m2 = LiteralMapping(reference=TR_2, text="b")
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory).joinpath("test.ssslm.tsv")
+            ssslm.write_literal_mappings([m1], path)
+            ssslm.append_literal_mapping(m2, path)
+            self.assertEqual([m1, m2], ssslm.read_literal_mappings(path))

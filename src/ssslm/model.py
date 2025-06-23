@@ -393,9 +393,10 @@ def _write_pandas(*, path: Path, literal_mappings: Iterable[LiteralMapping]) -> 
     df.to_csv(path, index=False, sep="\t")
 
 
-def append_literal_mapping(path: str | Path, literal_mapping: LiteralMapping) -> None:
+def append_literal_mapping(literal_mapping: LiteralMapping, path: str | Path) -> None:
     """Append a literal mapping to an existing file."""
-    raise NotImplementedError
+    with Path(path).expanduser().resolve().open("a") as file:
+        print(*literal_mapping._as_row(), sep="\t", file=file)
 
 
 def read_literal_mappings(
