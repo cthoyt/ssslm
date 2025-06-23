@@ -1,4 +1,4 @@
-"""Generate OWL from the literal mappings."""
+"""Generate ontology artifacts from the literal mappings."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from ssslm import LiteralMapping, get_prefixes, group_literal_mappings
 __all__ = [
     "DEFAULT_PREFIXES",
     "Metadata",
-    "write_owl_rdf",
+    "write_owl_ttl",
 ]
 
 
@@ -44,7 +44,7 @@ class Metadata(BaseModel):
             if self.license.startswith("http"):
                 lines.append(f"dcterms:license <{self.license}>")
             else:
-                lines.append(f"dcterms:license \"{self.license}\"^^xsd:string")
+                lines.append(f'dcterms:license "{self.license}"^^xsd:string')
         for comment in self.comments:
             lines.append(f'rdfs:comment "{comment}"^^xsd:string')
         if not lines:
@@ -235,7 +235,7 @@ def _get_axiom_str(reference: Reference, literal_mapping: LiteralMapping) -> str
     return axiom
 
 
-def write_owl_rdf(  # noqa:C901
+def write_owl_ttl(  # noqa:C901
     literal_mappings: Iterable[LiteralMapping],
     path: str | Path,
     *,
@@ -246,7 +246,7 @@ def write_owl_rdf(  # noqa:C901
     metadata: Metadata | None = None,
     prefix_map: dict[str, str] | None = None,
 ) -> None:
-    """Write OWL RDF."""
+    """Write literal mappings as OWL, encoded in turtle."""
     dd = group_literal_mappings(literal_mappings)
     with safe_open(path, operation="write") as file:
         if prefix_definitions:

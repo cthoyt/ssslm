@@ -1,13 +1,14 @@
 """Test writing OWL."""
 
+import tempfile
 import unittest
 from pathlib import Path
 from textwrap import dedent
 
-from ssslm import LiteralMapping
 from curies import NamedReference
-from ssslm.write_owl import Metadata, write_owl_rdf, PREAMBLE
-import tempfile
+
+from ssslm import LiteralMapping
+from ssslm.write_owl import PREAMBLE, Metadata, write_owl_rdf
 
 
 class TestOWL(unittest.TestCase):
@@ -57,7 +58,9 @@ class TestOWL(unittest.TestCase):
                     @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
                     @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 
-                """) + PREAMBLE + dedent("""\
+                """)
+                + PREAMBLE
+                + dedent("""\
 
 
                     a:1 a owl:Class ;
