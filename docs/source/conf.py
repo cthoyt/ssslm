@@ -246,6 +246,7 @@ intersphinx_mapping = {
     "curies": ("https://curies.readthedocs.io/en/latest", None),
     "pyobo": ("https://pyobo.readthedocs.io/en/latest", None),
     "biolexica": ("https://biolexica.readthedocs.io/en/latest", None),
+    "bioregistry": ("https://bioregistry.readthedocs.io/en/latest", None),
     "gilda": ("https://gilda.readthedocs.io/en/latest", None),
     "nltk": ("https://nltk.readthedocs.io/en/latest", None),
 }

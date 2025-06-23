@@ -28,6 +28,7 @@ from .ner import (
     Matcher,
     make_grounder,
 )
+from .ontology import write_owl_ttl
 
 __all__ = [
     "DEFAULT_PREDICATE",
@@ -54,4 +55,5 @@ __all__ = [
     "remap_literal_mappings",
     "write_gilda_terms",
     "write_literal_mappings",
+    "write_owl_ttl",
 ]
