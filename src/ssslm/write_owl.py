@@ -3,43 +3,54 @@
 from __future__ import annotations
 
 from collections import ChainMap
+from collections.abc import Iterable
 from pathlib import Path
 from textwrap import dedent
-from typing import Annotated, TextIO, Iterable
+from typing import Annotated, TextIO
 
 from curies import Reference
-from ssslm import LiteralMapping, group_literal_mappings, get_prefixes
-from typing_extensions import Doc
-
 from pydantic import BaseModel, Field
 from pystow.utils import safe_open
+from typing_extensions import Doc
 
+from ssslm import LiteralMapping, get_prefixes, group_literal_mappings
 
 __all__ = [
+    "DEFAULT_PREFIXES",
     "Metadata",
     "write_owl_rdf",
-    "DEFAULT_PREFIXES",
 ]
+
+
 class Metadata(BaseModel):
     """Metadata for the ontology."""
 
     uri: str
     title: str | None = None
     description: str | None = None
-    license: str | None = None
+    license_uri: str | None = None
     comments: list[str] = Field(default_factory=list)
 
     def _rdf_str(self) -> str:
-        pass
+        first = f"<{self.uri}> a owl:Ontology"
+        lines: list[str] = []
+        if self.title:
+            lines.append(f'dcterms:title "{self.title}"^^xsd:string')
+        if self.description:
+            lines.append(f'dcterms:description "{self.description}"^^xsd:string')
+        if self.license_uri:
+            lines.append(f"dcterms:license <{self.license_uri}>")
+        for comment in self.comments:
+            lines.append(f'rdfs:comment "{comment}"^^xsd:string')
+        if not lines:
+            return first + " ."
+        return (
+            first
+            + " ;\n"
+            + "".join(f"    {line} ;\n" for line in lines[:-1])
+            + f"    {lines[-1]} ."
+        )
 
-
-METADATA = f"""\
-<{URI}> a owl:Ontology ;
-    dcterms:title "Biosynonyms in OWL" ;
-    dcterms:description "An ontology representation of community curated synonyms in Biosynonyms" ;
-    dcterms:license <https://creativecommons.org/publicdomain/zero/1.0/> ;
-    rdfs:comment "Built by https://github.com/biopragmatics/biosynonyms"^^xsd:string .
-"""
 
 PREAMBLE = """\
 rdfs:label   a owl:AnnotationProperty; rdfs:label "label"^^xsd:string .
@@ -230,6 +241,7 @@ def write_owl_rdf(  # noqa:C901
     metadata: Metadata | None = None,
     prefix_map: dict[str, str] | None = None,
 ) -> None:
+    """Write OWL RDF."""
     dd = group_literal_mappings(literal_mappings)
     with safe_open(path, operation="write") as file:
         if prefix_definitions:
@@ -244,7 +256,9 @@ def write_owl_rdf(  # noqa:C901
             mains: list[str] = []
             axiom_strs: list[str] = []
             for literal_mapping in literal_mappings:
-                mains.append(f"{literal_mapping.predicate.curie} {_text_for_turtle(literal_mapping)}")
+                mains.append(
+                    f"{literal_mapping.predicate.curie} {_text_for_turtle(literal_mapping)}"
+                )
                 if axiom_str := _get_axiom_str(reference, literal_mapping):
                     axiom_strs.append(axiom_str)
 

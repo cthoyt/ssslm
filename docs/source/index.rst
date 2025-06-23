@@ -10,6 +10,7 @@ Simple Standard for Sharing Literal Mappings |release| Documentation
     usage
     cli
     ner
+    owl
 
 Indices and Tables
 ------------------
