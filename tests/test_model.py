@@ -325,3 +325,18 @@ class TestModel(unittest.TestCase):
 
             with self.assertRaises(ValueError):
                 ssslm.read_literal_mappings(path, reference_cls=CustomReference)
+
+    def test_group(self) -> None:
+        """Test grouping."""
+        r1, r2, r3, r4 = literal_mappings = [
+            LiteralMapping(reference=TR_1, text="a"),
+            LiteralMapping(reference=TR_1, text="b"),
+            LiteralMapping(reference=TR_2, text="c"),
+            LiteralMapping(reference=TR_2, text="b"),
+        ]
+        index = ssslm.group_literal_mappings(literal_mappings)
+        self.assertEqual({TR_1, TR_2}, set(index))
+        self.assertEqual([r1, r2], index[TR_1])
+        self.assertEqual([r3, r4], index[TR_2])
+
+        self.assertEqual({TR_1.prefix, "oboInOwl"}, ssslm.get_prefixes(literal_mappings))

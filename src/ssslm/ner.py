@@ -32,6 +32,7 @@ __all__ = [
     "Annotation",
     "Annotator",
     "GildaGrounder",
+    "GildaMatcher",
     "Grounder",
     "GrounderHint",
     "Match",

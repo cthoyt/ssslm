@@ -7,6 +7,7 @@ from .model import (
     LiteralMappingTuple,
     append_literal_mapping,
     df_to_literal_mappings,
+    get_prefixes,
     group_literal_mappings,
     lint_literal_mappings,
     literal_mappings_to_df,
@@ -27,6 +28,7 @@ from .ner import (
     Matcher,
     make_grounder,
 )
+from .ontology import write_owl_ttl
 
 __all__ = [
     "DEFAULT_PREDICATE",
@@ -42,6 +44,7 @@ __all__ = [
     "Matcher",
     "append_literal_mapping",
     "df_to_literal_mappings",
+    "get_prefixes",
     "group_literal_mappings",
     "lint_literal_mappings",
     "literal_mappings_to_df",
@@ -52,4 +55,5 @@ __all__ = [
     "remap_literal_mappings",
     "write_gilda_terms",
     "write_literal_mappings",
+    "write_owl_ttl",
 ]

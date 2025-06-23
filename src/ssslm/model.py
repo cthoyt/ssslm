@@ -27,9 +27,12 @@ __all__ = [
     "DEFAULT_PREDICATE",
     "PREDICATES",
     "LiteralMapping",
+    "LiteralMappingIndex",
     "LiteralMappingTuple",
+    "Writer",
     "append_literal_mapping",
     "df_to_literal_mappings",
+    "get_prefixes",
     "group_literal_mappings",
     "lint_literal_mappings",
     "literal_mappings_to_df",
@@ -272,6 +275,10 @@ class LiteralMapping(BaseModel):
         )
 
 
+#: An index from the reference to a list of mappings that use the reference
+LiteralMappingIndex: TypeAlias = dict[NamableReference, list[LiteralMapping]]
+
+
 def literal_mappings_to_gilda(
     literal_mappings: Iterable[LiteralMapping], *, on_error: GildaErrorPolicy = "raise"
 ) -> list[gilda.Term]:
@@ -345,6 +352,7 @@ def df_to_literal_mappings(
     )
 
 
+#: Valid writers
 Writer = Literal["pandas", "csv"]
 
 
@@ -360,7 +368,7 @@ def write_literal_mappings(
     literal_mappings: Iterable[LiteralMapping],
     path: str | Path,
     *,
-    writer: Literal["pandas", "csv"] | None = None,
+    writer: Writer | None = None,
 ) -> None:
     """Write literal mappings to a path."""
     path = Path(path).expanduser().resolve()
@@ -559,7 +567,7 @@ def _from_dicts(
 
 def group_literal_mappings(
     literal_mappings: Iterable[LiteralMapping],
-) -> dict[NamableReference, list[LiteralMapping]]:
+) -> LiteralMappingIndex:
     """Aggregate literal mappings by reference."""
     dd: defaultdict[NamableReference, list[LiteralMapping]] = defaultdict(list)
     for literal_mapping in tqdm(
@@ -567,6 +575,32 @@ def group_literal_mappings(
     ):
         dd[literal_mapping.reference].append(literal_mapping)
     return dict(dd)
+
+
+def get_prefixes(literal_mapping_index: LiteralMappingIndex | list[LiteralMapping]) -> set[str]:
+    """Get all prefixes appearing in a literal mapping index or iterable of literal mappings."""
+    if isinstance(literal_mapping_index, dict):
+        return _get_prefixes_from_index(literal_mapping_index)
+    elif isinstance(literal_mapping_index, list):
+        return _get_prefixes_from_iterable(literal_mapping_index)
+    else:
+        raise TypeError
+
+
+def _get_prefixes_from_iterable(literal_mappings: Iterable[LiteralMapping]) -> set[str]:
+    return {
+        reference.prefix
+        for literal_mapping in literal_mappings
+        for reference in literal_mapping.get_all_references()
+    }
+
+
+def _get_prefixes_from_index(literal_mapping_index: LiteralMappingIndex) -> set[str]:
+    return _get_prefixes_from_iterable(
+        literal_mapping
+        for literal_mappings in literal_mapping_index.values()
+        for literal_mapping in literal_mappings
+    )
 
 
 def lint_literal_mappings(path: Path, *, delimiter: str | None = None) -> None:

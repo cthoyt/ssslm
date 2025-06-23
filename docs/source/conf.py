@@ -24,7 +24,7 @@ copyright = f"{date.today().year}, Charles Tapley Hoyt"
 author = "Charles Tapley Hoyt"
 
 # The full version, including alpha/beta/rc tags.
-release = "0.0.15-dev"
+release = "0.0.16-dev"
 
 # The short X.Y version.
 parsed_version = re.match(
@@ -246,6 +246,7 @@ intersphinx_mapping = {
     "curies": ("https://curies.readthedocs.io/en/latest", None),
     "pyobo": ("https://pyobo.readthedocs.io/en/latest", None),
     "biolexica": ("https://biolexica.readthedocs.io/en/latest", None),
+    "bioregistry": ("https://bioregistry.readthedocs.io/en/latest", None),
     "gilda": ("https://gilda.readthedocs.io/en/latest", None),
     "nltk": ("https://nltk.readthedocs.io/en/latest", None),
 }
