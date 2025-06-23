@@ -30,11 +30,13 @@ __all__ = [
     "Annotation",
     "Annotator",
     "GildaGrounder",
+    "GildaMatcher",
     "Grounder",
     "GrounderHint",
     "Match",
     "Matcher",
     "PandasTargetType",
+    "WrappedMatcher",
     "make_grounder",
 ]
 
@@ -261,6 +263,18 @@ class Matcher(ABC):
         df[target_column] = df[column].map(func)
 
 
+class WrappedMatcher(Matcher):
+    """A matcher that wraps another matcher, allowing for composition."""
+
+    def __init__(self, *, matcher: Matcher) -> None:
+        """Instantiate the matcher around another matcher."""
+        self._matcher = matcher
+
+    # docstr-coverage:excused `inherited`
+    def get_matches(self, text: str, **kwargs: Any) -> list[Match]:  # noqa:D102
+        return self._matcher.get_matches(text, **kwargs)
+
+
 def _match_helper(
     text: str, matcher: Matcher, target_type: PandasTargetType | str, **kwargs: Any
 ) -> str | None | Match | NamableReference:
@@ -306,17 +320,19 @@ def _ensure_nltk() -> None:
     # if the package was downloaded
 
 
-class GildaGrounder(Grounder):
-    """A grounder and annotator that uses gilda as a backend."""
+class GildaMatcher(Matcher):
+    """A matcher that uses gilda as a backend."""
 
     def __init__(self, grounder: gilda.Grounder) -> None:
         """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
-        _ensure_nltk()  # very important - do this before importing gilda.ner
-
-        import gilda.ner
-
         self._grounder = grounder
-        self._annotate = gilda.ner.annotate
+
+    @classmethod
+    def default(cls) -> Self:
+        """Get the default/builtin grounder."""
+        import gilda.api
+
+        return cls(grounder=gilda.api.grounder.get_grounder())
 
     @classmethod
     def from_literal_mappings(
@@ -379,6 +395,20 @@ class GildaGrounder(Grounder):
                 text, context=context, organisms=organisms, namespaces=namespaces
             )
         ]
+
+
+class GildaGrounder(Grounder, GildaMatcher):
+    """A grounder and annotator that uses gilda as a backend."""
+
+    def __init__(self, grounder: gilda.Grounder) -> None:
+        """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
+        super().__init__(grounder)
+
+        _ensure_nltk()  # very important - do this before importing gilda.ner
+
+        import gilda.ner
+
+        self._annotate = gilda.ner.annotate
 
     def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
         """Annotate the text."""
