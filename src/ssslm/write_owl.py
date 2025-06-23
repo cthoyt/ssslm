@@ -28,7 +28,7 @@ class Metadata(BaseModel):
     uri: str
     title: str | None = None
     description: str | None = None
-    license_uri: str | None = None
+    license: Reference | str | None = None
     comments: list[str] = Field(default_factory=list)
 
     def _rdf_str(self) -> str:
@@ -38,8 +38,13 @@ class Metadata(BaseModel):
             lines.append(f'dcterms:title "{self.title}"^^xsd:string')
         if self.description:
             lines.append(f'dcterms:description "{self.description}"^^xsd:string')
-        if self.license_uri:
-            lines.append(f"dcterms:license <{self.license_uri}>")
+        if isinstance(self.license, Reference):
+            lines.append(f"dcterms:license {self.license.curie}")
+        elif isinstance(self.license, str):
+            if self.license.startswith("http"):
+                lines.append(f"dcterms:license <{self.license}>")
+            else:
+                lines.append(f"dcterms:license \"{self.license}\"^^xsd:string")
         for comment in self.comments:
             lines.append(f'rdfs:comment "{comment}"^^xsd:string')
         if not lines:
