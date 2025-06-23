@@ -244,7 +244,7 @@ def write_owl_ttl(  # noqa:C901
     dd = group_literal_mappings(literal_mappings)
 
     # accmulate people
-    people: set[NamableReference] = set()
+    people: set[Reference] = set()
 
     with safe_open(path, operation="write") as file:
         if prefix_definitions:
@@ -290,13 +290,14 @@ def write_owl_ttl(  # noqa:C901
 
         if people:
             file.write("\n")
-        for reference in sorted(people):
-            if reference.name:
+        for person_reference in sorted(people):
+            if isinstance(person_reference, NamableReference) and person_reference.name:
                 file.write(
-                    f'{reference.curie} a NCBITaxon:9606 ; rdfs:label "{reference.name}"@en .\n'
+                    f"{person_reference.curie} a NCBITaxon:9606 ; "
+                    f'rdfs:label "{person_reference.name}"@en .\n'
                 )
             else:
-                file.write(f"{reference.curie} a NCBITaxon:9606 .\n")
+                file.write(f"{person_reference.curie} a NCBITaxon:9606 .\n")
 
 
 def _clean_str(s: str) -> str:
