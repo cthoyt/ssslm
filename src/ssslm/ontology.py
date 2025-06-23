@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from pystow.utils import safe_open
 from typing_extensions import Doc
 
-from ssslm import LiteralMapping, get_prefixes, group_literal_mappings
+from .model import LiteralMapping, get_prefixes, group_literal_mappings
 
 __all__ = [
     "DEFAULT_PREFIXES",
