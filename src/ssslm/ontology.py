@@ -8,7 +8,7 @@ from pathlib import Path
 from textwrap import dedent
 from typing import Annotated, TextIO
 
-from curies import Reference
+from curies import NamableReference, Reference
 from pydantic import BaseModel, Field
 from pystow.utils import safe_open
 from typing_extensions import Doc
@@ -94,12 +94,6 @@ BFO:0000051 a owl:ObjectProperty; rdfs:label "has part"^^xsd:string .
 
 NCBITaxon:9606 a owl:Class ;
     rdfs:label "Homo sapiens" .
-
-orcid:0000-0003-4423-4370 a NCBITaxon:9606 ;
-    rdfs:label "Charles Tapley Hoyt"@en .
-
-orcid:0000-0001-9439-5346 a NCBITaxon:9606 ;
-    rdfs:label "Benjamin M. Gyori"@en .
 
 # See new OMO synonyms at
 # https://github.com/information-artifact-ontology/ontology-metadata/blob/master/src/templates/annotation_properties.tsv
@@ -248,6 +242,10 @@ def write_owl_ttl(  # noqa:C901
 ) -> None:
     """Write literal mappings as OWL, encoded in turtle."""
     dd = group_literal_mappings(literal_mappings)
+
+    # accmulate people
+    people: set[NamableReference] = set()
+
     with safe_open(path, operation="write") as file:
         if prefix_definitions:
             _write_prefix_map(get_prefixes(dd), file=file, prefix_map=prefix_map)
@@ -266,6 +264,9 @@ def write_owl_ttl(  # noqa:C901
                 )
                 if axiom_str := _get_axiom_str(reference, literal_mapping):
                     axiom_strs.append(axiom_str)
+
+                if literal_mapping.contributor:
+                    people.add(literal_mapping.contributor)
 
             if class_definitions:
                 file.write(f"\n{reference.curie} a owl:Class ;\n")
@@ -286,6 +287,16 @@ def write_owl_ttl(  # noqa:C901
                 file.write("\n")
             for axiom_str in axiom_strs:
                 file.write(dedent(axiom_str))
+
+        if people:
+            file.write("\n")
+        for reference in sorted(people):
+            if reference.name:
+                file.write(
+                    f'{reference.curie} a NCBITaxon:9606 ; rdfs:label "{reference.name}"@en .\n'
+                )
+            else:
+                file.write(f"{reference.curie} a NCBITaxon:9606 .\n")
 
 
 def _clean_str(s: str) -> str:

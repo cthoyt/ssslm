@@ -6,9 +6,10 @@ from pathlib import Path
 from textwrap import dedent
 
 from curies import NamedReference
+from curies.vocabulary import charlie
 
 from ssslm import LiteralMapping
-from ssslm.write_owl import PREAMBLE, Metadata, write_owl_rdf
+from ssslm.ontology import PREAMBLE, Metadata, write_owl_ttl
 
 
 class TestOWL(unittest.TestCase):
@@ -38,11 +39,16 @@ class TestOWL(unittest.TestCase):
         """Test writing OWL RDF."""
         mappings = [
             LiteralMapping(reference=NamedReference.from_curie("a:1", name="A"), text="a"),
+            LiteralMapping(
+                reference=NamedReference.from_curie("a:1", name="A"),
+                text="a-syn",
+                contributor=charlie,
+            ),
         ]
 
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory).joinpath("test.owl")
-            write_owl_rdf(mappings, path, prefix_map={"a": "https://example.org/a#"})
+            write_owl_ttl(mappings, path, prefix_map={"a": "https://example.org/a#"})
 
             self.assertEqual(
                 dedent("""\
@@ -65,7 +71,19 @@ class TestOWL(unittest.TestCase):
 
                     a:1 a owl:Class ;
                         oboInOwl:hasRelatedSynonym "a" ;
+                        oboInOwl:hasRelatedSynonym "a-syn" ;
                         rdfs:label "A" .
+
+                    [
+                        a owl:Axiom ;
+                        owl:annotatedSource a:1 ;
+                        owl:annotatedProperty oboInOwl:hasRelatedSynonym ;
+                        owl:annotatedTarget "a-syn" ;
+                        dcterms:contributor orcid:0000-0003-4423-4370 .
+                    ] .
+
+                    orcid:0000-0003-4423-4370 a NCBITaxon:9606 ; rdfs:label \
+"Charles Tapley Hoyt"@en .
                 """),
                 path.read_text(),
             )
