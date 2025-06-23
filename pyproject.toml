@@ -65,6 +65,7 @@ tests = [
     "responses",
     "pandas",
     "httpx",
+    "bioregistry",
 ]
 docs = [
     "sphinx>=8",
