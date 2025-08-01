@@ -15,7 +15,7 @@ import curies
 from curies import NamableReference, NamedReference
 from pydantic import BaseModel, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
-from pystow.utils import safe_open_reader, safe_open_writer
+from pystow.utils import safe_open_dict_reader, safe_open_writer
 from typing_extensions import Self
 
 from .model import (
@@ -210,22 +210,17 @@ class Annotation(BaseModel):
 
 def read_annotations(path: str | Path | TextIO) -> list[Annotation]:
     """Read annotations from a TSV file."""
-    with safe_open_reader(path) as reader:
-        _header = next(reader)
-        return [
-            Annotation(
-                match=Match(
-                    reference=curies.NamableReference.from_curie(curie, name=name or None),
-                    score=score,
-                ),
-                start=start,
-                end=end,
-                text=text,
-                language=language or None,
-                source=source or None,
-            )
-            for curie, name, score, start, end, text, language, source in reader
-        ]
+    with safe_open_dict_reader(path) as reader:
+        return [Annotation.model_validate(_reorganize(record)) for record in reader]
+
+
+def _reorganize(d: dict[str, Any]) -> dict[str, Any]:
+    d["match"] = Match(
+        reference=curies.NamableReference.from_curie(d.pop("curie"), name=d.pop("name") or None),
+        score=d.pop("score"),
+    )
+    d = {k: v for k, v in d.items() if k and v}
+    return d
 
 
 def write_annotations(annotations: Iterable[Annotation], path: str | Path | TextIO) -> None:

@@ -54,7 +54,7 @@ dependencies = [
     "pydantic-extra-types[pycountry]",
     "tqdm",
     "click",
-    "pystow>=0.7.1",
+    "pystow>=0.7.2",
 ]
 
 # see https://peps.python.org/pep-0735/ and https://docs.astral.sh/uv/concepts/dependencies/#dependency-groups
