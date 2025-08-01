@@ -306,18 +306,33 @@ class Grounder(Matcher, Annotator, ABC):
     """A combine matcher and annotator."""
 
 
-@lru_cache(1)
-def _ensure_nltk() -> None:
-    """Ensure NLTK data is downloaded properly."""
+@lru_cache
+def _ensure_nltk(resource: str = "stopwords") -> tuple[Path, bool]:
+    """Ensure NLTK data is downloaded properly.
+
+    :param resource: Name of the resource to download
+    :returns:
+        A pair of the NLTK cache directory and a boolean that says if download was successful
+    """
     import nltk.data
     import pystow
 
     directory = pystow.join("nltk")
-    nltk.download("stopwords", download_dir=directory, quiet=True)
-    nltk.data.path.append(directory)
+
+    result = nltk.download(resource, download_dir=directory, quiet=True)
+    if directory not in nltk.data.path:
+        nltk.data.path.append(directory)
 
     # this is cached so you don't have to keep checking
     # if the package was downloaded
+
+    return directory, result
+
+
+def _nltk_download(resource, directory):
+    import nltk
+
+    return nltk.download(resource, download_dir=directory, quiet=True)
 
 
 class GildaMatcher(Matcher):
