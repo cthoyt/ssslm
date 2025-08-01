@@ -9,11 +9,13 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TypeAlias, TypeGuard, Union
+from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Union
 
+import curies
 import pystow
 from curies import NamableReference, NamedReference
 from pydantic import BaseModel
+from pystow.utils import safe_open_dict_reader, safe_open_writer
 from typing_extensions import Self
 
 from .model import (
@@ -39,6 +41,8 @@ __all__ = [
     "PandasTargetType",
     "WrappedMatcher",
     "make_grounder",
+    "read_annotations",
+    "write_annotations",
 ]
 
 Implementation: TypeAlias = Literal["gilda"]
@@ -196,6 +200,38 @@ class Annotation(BaseModel):
     def substr(self) -> str:
         """Get the substring that was matched."""
         return self.text[self.start : self.end]
+
+
+def read_annotations(path: str | Path | TextIO) -> list[Annotation]:
+    """Read annotations from a TSV file."""
+    with safe_open_dict_reader(path) as reader:
+        return [Annotation.model_validate(_reorganize(record)) for record in reader]
+
+
+def _reorganize(d: dict[str, Any]) -> dict[str, Any]:
+    d["match"] = Match(
+        reference=curies.NamableReference.from_curie(d.pop("curie"), name=d.pop("name") or None),
+        score=d.pop("score"),
+    )
+    d = {k: v for k, v in d.items() if k and v}
+    return d
+
+
+def write_annotations(annotations: Iterable[Annotation], path: str | Path | TextIO) -> None:
+    """Write annotations to a TSV file."""
+    with safe_open_writer(path) as writer:
+        writer.writerow(("curie", "name", "score", "start", "end", "text", "language", "source"))
+        writer.writerows(
+            (
+                annotation.curie,
+                annotation.name or "",
+                annotation.match.score,
+                annotation.start,
+                annotation.end,
+                annotation.text,
+            )
+            for annotation in annotations
+        )
 
 
 class PandasTargetType(enum.Enum):
