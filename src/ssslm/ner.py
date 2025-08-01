@@ -366,8 +366,7 @@ def _ensure_nltk() -> None:
 
     directory = pystow.join("nltk")
     nltk.download("stopwords", download_dir=directory, quiet=True)
-    if directory not in nltk.data.path:
-        nltk.data.path.append(directory)
+    nltk.data.path.append(directory)
 
     # this is cached so you don't have to keep checking
     # if the package was downloaded
