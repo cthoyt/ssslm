@@ -13,8 +13,7 @@ from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Un
 
 import curies
 from curies import NamableReference, NamedReference
-from pydantic import BaseModel, Field
-from pydantic_extra_types.language_code import LanguageAlpha2
+from pydantic import BaseModel
 from pystow.utils import safe_open_dict_reader, safe_open_writer
 from typing_extensions import Self
 
