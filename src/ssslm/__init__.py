@@ -27,6 +27,8 @@ from .ner import (
     Match,
     Matcher,
     make_grounder,
+    read_annotations,
+    write_annotations,
 )
 from .ontology import write_owl_ttl
 
@@ -50,9 +52,11 @@ __all__ = [
     "literal_mappings_to_df",
     "literal_mappings_to_gilda",
     "make_grounder",
+    "read_annotations",
     "read_gilda_terms",
     "read_literal_mappings",
     "remap_literal_mappings",
+    "write_annotations",
     "write_gilda_terms",
     "write_literal_mappings",
     "write_owl_ttl",

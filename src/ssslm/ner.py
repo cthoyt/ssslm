@@ -9,11 +9,13 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TypeAlias, TypeGuard, Union
+from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Union
 
+import curies
 from curies import NamableReference, NamedReference
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
+from pystow.utils import safe_open_writer
 from typing_extensions import Self
 
 from .model import (
@@ -39,6 +41,8 @@ __all__ = [
     "PandasTargetType",
     "WrappedMatcher",
     "make_grounder",
+    "read_annotations",
+    "write_annotations",
 ]
 
 Implementation: TypeAlias = Literal["gilda"]
@@ -161,7 +165,12 @@ class Annotation(BaseModel):
     start: int
     end: int
     match: Match
-    language: LanguageAlpha2 | None = None
+    language: LanguageAlpha2 | None = Field(default=None, description="The language of the text.")
+    source: curies.Reference | None = Field(
+        default=None,
+        description="The source of the text. For example, if text comes from an article "
+        "in PubMed, then this could be the PubMed identifier.",
+    )
 
     @property
     def reference(self) -> NamableReference:
@@ -197,6 +206,28 @@ class Annotation(BaseModel):
     def substr(self) -> str:
         """Get the substring that was matched."""
         return self.text[self.start : self.end]
+
+
+def read_annotations(path: str | Path | TextIO) -> list[Annotation]:
+    """Read annotations from a TSV file."""
+    raise NotImplementedError
+
+
+def write_annotations(annotations: Iterable[Annotation], path: str | Path | TextIO) -> None:
+    """Write annotations to a TSV file."""
+    with safe_open_writer(path) as writer:
+        writer.writerow(("curie", "name", "start", "end", "text", "language"))
+        writer.writerows(
+            (
+                annotation.curie,
+                annotation.name or "",
+                annotation.start,
+                annotation.end,
+                annotation.text,
+                annotation.language or "",
+            )
+            for annotation in annotations
+        )
 
 
 class PandasTargetType(enum.Enum):
@@ -301,7 +332,12 @@ class Annotator(ABC):
 
     @abstractmethod
     def annotate(
-        self, text: str, *, language: str | LanguageAlpha2 | None = None, **kwargs: Any
+        self,
+        text: str,
+        *,
+        language: str | LanguageAlpha2 | None = None,
+        source: curies.Reference | None = None,
+        **kwargs: Any,
     ) -> list[Annotation]:
         """Annotate the text."""
 
@@ -318,7 +354,8 @@ def _ensure_nltk() -> None:
 
     directory = pystow.join("nltk")
     nltk.download("stopwords", download_dir=directory, quiet=True)
-    nltk.data.path.append(directory)
+    if directory not in nltk.data.path:
+        nltk.data.path.append(directory)
 
     # this is cached so you don't have to keep checking
     # if the package was downloaded
@@ -415,7 +452,12 @@ class GildaGrounder(Grounder, GildaMatcher):
         self._annotate = gilda.ner.annotate
 
     def annotate(
-        self, text: str, *, language: str | LanguageAlpha2 | None = None, **kwargs: Any
+        self,
+        text: str,
+        *,
+        language: str | LanguageAlpha2 | None = None,
+        source: curies.Reference | None = None,
+        **kwargs: Any,
     ) -> list[Annotation]:
         """Annotate the text."""
         return [
@@ -424,7 +466,9 @@ class GildaGrounder(Grounder, GildaMatcher):
                 match=self._convert_gilda_match(match),
                 start=annotation.start,
                 end=annotation.end,
+                # meta
                 language=language,
+                source=source,
             )
             for annotation in self._annotate(text, grounder=self._grounder, **kwargs)
             for match in annotation.matches
