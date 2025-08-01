@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, Literal, TypeAlias, TypeGuard, Union
 
 from curies import NamableReference, NamedReference
 from pydantic import BaseModel
+from pydantic_extra_types.language_code import LanguageAlpha2
 from typing_extensions import Self
 
 from .model import (
@@ -160,6 +161,7 @@ class Annotation(BaseModel):
     start: int
     end: int
     match: Match
+    language: LanguageAlpha2 | None = None
 
     @property
     def reference(self) -> NamableReference:
@@ -298,7 +300,9 @@ class Annotator(ABC):
     """An interface for something that can annotate."""
 
     @abstractmethod
-    def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+    def annotate(
+        self, text: str, *, language: str | LanguageAlpha2 | None = None, **kwargs: Any
+    ) -> list[Annotation]:
         """Annotate the text."""
 
 
@@ -410,7 +414,9 @@ class GildaGrounder(Grounder, GildaMatcher):
 
         self._annotate = gilda.ner.annotate
 
-    def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+    def annotate(
+        self, text: str, *, language: str | LanguageAlpha2 | None = None, **kwargs: Any
+    ) -> list[Annotation]:
         """Annotate the text."""
         return [
             Annotation(
@@ -418,6 +424,7 @@ class GildaGrounder(Grounder, GildaMatcher):
                 match=self._convert_gilda_match(match),
                 start=annotation.start,
                 end=annotation.end,
+                language=language,
             )
             for annotation in self._annotate(text, grounder=self._grounder, **kwargs)
             for match in annotation.matches
