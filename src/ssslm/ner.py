@@ -7,11 +7,12 @@ import importlib.util
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-from functools import lru_cache, partial
+from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Union
 
 import curies
+import pystow
 from curies import NamableReference, NamedReference
 from pydantic import BaseModel, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
@@ -358,20 +359,6 @@ class Grounder(Matcher, Annotator, ABC):
     """A combine matcher and annotator."""
 
 
-@lru_cache(1)
-def _ensure_nltk() -> None:
-    """Ensure NLTK data is downloaded properly."""
-    import nltk.data
-    import pystow
-
-    directory = pystow.join("nltk")
-    nltk.download("stopwords", download_dir=directory, quiet=True)
-    nltk.data.path.append(directory)
-
-    # this is cached so you don't have to keep checking
-    # if the package was downloaded
-
-
 class GildaMatcher(Matcher):
     """A matcher that uses gilda as a backend."""
 
@@ -456,7 +443,7 @@ class GildaGrounder(Grounder, GildaMatcher):
         """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
         super().__init__(grounder)
 
-        _ensure_nltk()  # very important - do this before importing gilda.ner
+        pystow.ensure_nltk("stopwords")  # very important - do this before importing gilda.ner
 
         import gilda.ner
 
