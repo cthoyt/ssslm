@@ -122,6 +122,10 @@ gilda-slim = [
     "nltk", # needed for NER functionality
     "pystow", # needed for auto-download of NLTK stopwords corpus
 ]
+# needed for using default grounder
+gilda-default = [
+    "boto3",
+]
 gilda = [
     "gilda",
     "nltk",
@@ -130,6 +134,7 @@ gilda = [
 scispacy = [
     "spacy",
     "scispacy",
+    # spacy hasn't been updated to link properly to new numpy
     "numpy<2.0",
 ]
 en-core-sci-sm = [
