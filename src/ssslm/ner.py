@@ -367,7 +367,8 @@ class SpacyGrounder(Grounder, WrappedMatcher):
 
         In the following example, a SpaCy grounder is instantiated using an underlying
         Gilda matcher, which incorporates the disease branch of Medical Subject Headings
-        (MeSH):
+        (MeSH). You'll need to install a SciSpaCy model first with ``pip install
+        https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_sm-0.5.4.tar.gz``.
 
         .. code-block:: python
 
@@ -395,7 +396,7 @@ class SpacyGrounder(Grounder, WrappedMatcher):
             self.spacy_language_model = spacy_model
 
     def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
-        """Annotate the text using a combination of the spacy annotator, and the grounder."""
+        """Annotate the text using a combination of the spacy annotator, and the wrapped matcher."""
         document: spacy.tokens.Doc = self.spacy_language_model(text)
         return [
             Annotation(text=text, match=match, start=entity.start_char, end=entity.end_char)
