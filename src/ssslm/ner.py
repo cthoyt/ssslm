@@ -351,9 +351,8 @@ class SpacyGrounder(Grounder, WrappedMatcher):
 
     .. warning::
 
-        SpaCy is very difficult to get working on modern versions
-        of Python, due to its dependence on NumPy's pre-2.0 release.
-        You're on your own, good luck!
+        SpaCy is very difficult to get working on modern versions of Python, due to its
+        dependence on NumPy's pre-2.0 release. You're on your own, good luck!
     """
 
     spacy_language_model: spacy.Language
@@ -363,12 +362,12 @@ class SpacyGrounder(Grounder, WrappedMatcher):
 
         :param matcher: A pre-defined matcher
         :param spacy_model: The name of a SpaCy model. See
-            https://allenai.github.io/scispacy/ for a list of biomedical
-            and clincal NER models from :mod:`scispacy`.
+            https://allenai.github.io/scispacy/ for a list of biomedical and clincal NER
+            models from :mod:`scispacy`.
 
-        In the following example, a SpaCy grounder is instantiated using
-        an underlying Gilda matcher, which incorporates the disease branch
-        of Medical Subject Headings (MeSH):
+        In the following example, a SpaCy grounder is instantiated using an underlying
+        Gilda matcher, which incorporates the disease branch of Medical Subject Headings
+        (MeSH):
 
         .. code-block:: python
 
