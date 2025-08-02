@@ -396,7 +396,7 @@ class SpacyGrounder(Grounder, WrappedMatcher):
             self.spacy_language_model = spacy_model
 
     def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
-        """Annotate the text using a combination of the spacy annotator, and the grounder."""
+        """Annotate the text using a combination of the spacy annotator, and the wrapped matcher."""
         document: spacy.tokens.Doc = self.spacy_language_model(text)
         return [
             Annotation(text=text, match=match, start=entity.start_char, end=entity.end_char)
