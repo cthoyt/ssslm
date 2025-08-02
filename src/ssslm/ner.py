@@ -14,7 +14,8 @@ from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Un
 import curies
 import pystow
 from curies import NamableReference, NamedReference
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from pydantic_extra_types.language_code import LanguageAlpha2
 from pystow.utils import safe_open_dict_reader, safe_open_writer
 from typing_extensions import Self
 
@@ -168,6 +169,12 @@ class Annotation(BaseModel):
     start: int
     end: int
     match: Match
+    language: LanguageAlpha2 | None = Field(default=None, description="The language of the text.")
+    source: curies.Reference | None = Field(
+        default=None,
+        description="The source of the text. For example, if text comes from an article "
+        "in PubMed, then this could be the PubMed identifier.",
+    )
 
     @property
     def reference(self) -> NamableReference:
@@ -232,6 +239,8 @@ def write_annotations(annotations: Iterable[Annotation], path: str | Path | Text
                 annotation.start,
                 annotation.end,
                 annotation.text,
+                annotation.language or "",
+                annotation.source.curie if annotation.source else "",
             )
             for annotation in annotations
         )
@@ -338,7 +347,14 @@ class Annotator(ABC):
     """An interface for something that can annotate."""
 
     @abstractmethod
-    def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+    def annotate(
+        self,
+        text: str,
+        *,
+        language: str | LanguageAlpha2 | None = None,
+        source: curies.Reference | None = None,
+        **kwargs: Any,
+    ) -> list[Annotation]:
         """Annotate the text."""
 
 
@@ -475,7 +491,14 @@ class GildaGrounder(Grounder, GildaMatcher):
 
         self._annotate = gilda.ner.annotate
 
-    def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+    def annotate(
+        self,
+        text: str,
+        *,
+        language: str | LanguageAlpha2 | None = None,
+        source: curies.Reference | None = None,
+        **kwargs: Any,
+    ) -> list[Annotation]:
         """Annotate the text."""
         return [
             Annotation(
@@ -483,6 +506,9 @@ class GildaGrounder(Grounder, GildaMatcher):
                 match=self._convert_gilda_match(match),
                 start=annotation.start,
                 end=annotation.end,
+                # meta
+                language=language,
+                source=source,
             )
             for annotation in self._annotate(text, grounder=self._grounder, **kwargs)
             for match in annotation.matches
