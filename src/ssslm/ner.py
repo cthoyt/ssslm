@@ -7,12 +7,15 @@ import importlib.util
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-from functools import lru_cache, partial
+from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TypeAlias, TypeGuard, Union
+from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Union
 
+import curies
+import pystow
 from curies import NamableReference, NamedReference
 from pydantic import BaseModel
+from pystow.utils import safe_open_dict_reader, safe_open_writer
 from typing_extensions import Self
 
 from .model import (
@@ -41,6 +44,8 @@ __all__ = [
     "SpacyGrounder",
     "WrappedMatcher",
     "make_grounder",
+    "read_annotations",
+    "write_annotations",
 ]
 
 Implementation: TypeAlias = Literal["gilda"]
@@ -200,6 +205,38 @@ class Annotation(BaseModel):
         return self.text[self.start : self.end]
 
 
+def read_annotations(path: str | Path | TextIO) -> list[Annotation]:
+    """Read annotations from a TSV file."""
+    with safe_open_dict_reader(path) as reader:
+        return [Annotation.model_validate(_reorganize(record)) for record in reader]
+
+
+def _reorganize(d: dict[str, Any]) -> dict[str, Any]:
+    d["match"] = Match(
+        reference=curies.NamableReference.from_curie(d.pop("curie"), name=d.pop("name") or None),
+        score=d.pop("score"),
+    )
+    d = {k: v for k, v in d.items() if k and v}
+    return d
+
+
+def write_annotations(annotations: Iterable[Annotation], path: str | Path | TextIO) -> None:
+    """Write annotations to a TSV file."""
+    with safe_open_writer(path) as writer:
+        writer.writerow(("curie", "name", "score", "start", "end", "text", "language", "source"))
+        writer.writerows(
+            (
+                annotation.curie,
+                annotation.name or "",
+                annotation.match.score,
+                annotation.start,
+                annotation.end,
+                annotation.text,
+            )
+            for annotation in annotations
+        )
+
+
 class PandasTargetType(enum.Enum):
     """How should pandas columns be filled."""
 
@@ -341,20 +378,6 @@ class SpacyGrounder(Grounder, WrappedMatcher):
         ]
 
 
-@lru_cache(1)
-def _ensure_nltk() -> None:
-    """Ensure NLTK data is downloaded properly."""
-    import nltk.data
-    import pystow
-
-    directory = pystow.join("nltk")
-    nltk.download("stopwords", download_dir=directory, quiet=True)
-    nltk.data.path.append(directory)
-
-    # this is cached so you don't have to keep checking
-    # if the package was downloaded
-
-
 class GildaMatcher(Matcher):
     """A matcher that uses gilda as a backend."""
 
@@ -439,7 +462,7 @@ class GildaGrounder(Grounder, GildaMatcher):
         """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
         super().__init__(grounder)
 
-        _ensure_nltk()  # very important - do this before importing gilda.ner
+        pystow.ensure_nltk("stopwords")  # very important - do this before importing gilda.ner
 
         import gilda.ner
 

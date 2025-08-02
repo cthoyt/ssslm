@@ -5,13 +5,21 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import curies
 import gilda
 import pandas as pd
 from curies import NamedReference, Reference
 
 import ssslm
 from ssslm import GildaGrounder, LiteralMapping
-from ssslm.ner import Match, SpacyGrounder, make_grounder
+from ssslm.ner import (
+    Annotation,
+    Match,
+    SpacyGrounder,
+    make_grounder,
+    read_annotations,
+    write_annotations,
+)
 
 
 class TestNER(unittest.TestCase):
@@ -118,6 +126,24 @@ class TestNER(unittest.TestCase):
             ],
             df.values.tolist(),
         )
+
+    def test_annotation_io(self) -> None:
+        """Test reading and writing annotations."""
+        annotation = Annotation(
+            match=Match(
+                reference=curies.NamableReference(
+                    prefix="prefix", identifier="identifier", name="name"
+                ),
+                score=0.123,
+            ),
+            start=1,
+            end=10,
+            text="hello",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory).joinpath("test.tsv")
+            write_annotations([annotation], path)
+            self.assertEqual([annotation], read_annotations(path))
 
     @unittest.skipUnless(
         all(importlib.util.find_spec(name) for name in ["spacy", "scispacy", "en_core_sci_sm"]),
