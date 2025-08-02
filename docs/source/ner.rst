@@ -5,8 +5,12 @@ The SSSLM software package contains a submodule :mod:`ssslm.ner` for named entit
 recognition (NER) and named entity normalization (NEN) that provides a standard class
 API and data model encoded with :mod:`pydantic` models.
 
-By default, SSSLM wraps the NER/NEN system implemented in :mod:`gilda`, but is
-extensible for other systems.
+By default, SSSLM wraps the NER/NEN system implemented in :mod:`gilda` because of its
+speed and lack of heavy dependencies. SSSLM also wraps the more powerful :mod:`spacy`
+NER system, though it is typically difficult to install and figure.
+
+SSSLM can be extended to other NER/NEN systems by subclassing :class:`ssslm.ner.Matcher`
+(for NEN) or :class:`ssslm.ner.Annotator` (for NER).
 
 Case Study
 ----------
@@ -46,8 +50,8 @@ Single vocabulary
 If you're looking to ground a column to a single ontology/database, you can load a SSSLM
 grounder via PyOBO's :func:`pyobo.get_grounder` like:
 
-Before running the following, make sure you do ``pip install pandas ssslm[gilda-slim]
-pyobo`` and have a minimum PyOBO version of v0.12.0.
+Before running the following, make sure you do ``pip install pandas
+pyobo[gilda-slim]>=0.12.0``.
 
 .. code-block:: python
 
@@ -55,8 +59,7 @@ pyobo`` and have a minimum PyOBO version of v0.12.0.
     # requires-python = ">=3.10"
     # dependencies = [
     #     "pandas",
-    #     "pyobo",
-    #     "ssslm[gilda-slim]",
+    #     "pyobo[gilda-slim]>=0.12.0",
     # ]
     # ///
 
