@@ -367,7 +367,8 @@ class SpacyGrounder(Grounder, WrappedMatcher):
 
         In the following example, a SpaCy grounder is instantiated using an underlying
         Gilda matcher, which incorporates the disease branch of Medical Subject Headings
-        (MeSH):
+        (MeSH). You'll need to install a SciSpaCy model first with
+        ``pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_sm-0.5.4.tar.gz``.
 
         .. code-block:: python
 
