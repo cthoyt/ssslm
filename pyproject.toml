@@ -122,10 +122,29 @@ gilda-slim = [
     "nltk", # needed for NER functionality
     "pystow", # needed for auto-download of NLTK stopwords corpus
 ]
+# needed for using default grounder
+gilda-default = [
+    "boto3",
+]
 gilda = [
     "gilda",
     "nltk",
     "pystow",
+]
+# this doesn't work on versions above 3.10 as of august 2025
+scispacy = [
+    "spacy ; python_version < '3.11'",
+    "scispacy ; python_version < '3.11'",
+    # spacy hasn't been updated to link properly to new numpy
+    "numpy<2.0 ; python_version < '3.11'",
+]
+en-core-sci-sm = [
+    "ssslm[scispacy]",
+    "en-core-sci-sm @ https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_sm-0.5.4.tar.gz ; python_version < '3.11'",
+]
+en-core-sci-md = [
+    "ssslm[scispacy]",
+    "en-core-sci-md @ https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_md-0.5.4.tar.gz ; python_version < '3.11'",
 ]
 web = [
     "fastapi",
