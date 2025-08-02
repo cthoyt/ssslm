@@ -67,6 +67,12 @@ tests = [
     "httpx",
     "bioregistry>=0.12.19",
 ]
+en-core-sci-sm = [
+    "en-core-sci-sm @ https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_sm-0.5.4.tar.gz ; python_version < '3.11'",
+]
+en-core-sci-md = [
+    "en-core-sci-md @ https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_md-0.5.4.tar.gz ; python_version < '3.11'",
+]
 docs = [
     "sphinx>=8",
     "sphinx-rtd-theme>=3.0",
@@ -137,14 +143,6 @@ scispacy = [
     "scispacy ; python_version < '3.11'",
     # spacy hasn't been updated to link properly to new numpy
     "numpy<2.0 ; python_version < '3.11'",
-]
-en-core-sci-sm = [
-    "ssslm[scispacy]",
-    "en-core-sci-sm @ https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_sm-0.5.4.tar.gz ; python_version < '3.11'",
-]
-en-core-sci-md = [
-    "ssslm[scispacy]",
-    "en-core-sci-md @ https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_md-0.5.4.tar.gz ; python_version < '3.11'",
 ]
 web = [
     "fastapi",
