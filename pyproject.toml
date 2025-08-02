@@ -130,6 +130,7 @@ gilda = [
 scispacy = [
     "spacy",
     "scispacy",
+    "numpy<2.0",
 ]
 en-core-sci-sm = [
     "ssslm[scispacy]",
