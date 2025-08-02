@@ -347,7 +347,14 @@ class Grounder(Matcher, Annotator, ABC):
 
 
 class SpacyGrounder(Grounder, WrappedMatcher):
-    """An annotator that works via spacy."""
+    """An annotator that works via spacy.
+
+    .. warning::
+
+        SpaCy is very difficult to get working on modern versions
+        of Python, due to its dependence on NumPy's pre-2.0 release.
+        You're on your own, good luck!
+    """
 
     spacy_language_model: spacy.Language
 
