@@ -11,9 +11,10 @@ import pandas as pd
 from curies import NamedReference, Reference
 
 import ssslm
-from ssslm import GildaGrounder, LiteralMapping
+from ssslm import LiteralMapping
 from ssslm.ner import (
     Annotation,
+    GildaMatcher,
     Match,
     SpacyGrounder,
     make_grounder,
@@ -155,7 +156,7 @@ class TestNER(unittest.TestCase):
 
         spacy_model = spacy.load("en_core_sci_sm")
 
-        matcher = GildaGrounder.default()
+        matcher = GildaMatcher.default()
         grounder = SpacyGrounder(
             matcher=matcher,
             spacy_model=spacy_model,
