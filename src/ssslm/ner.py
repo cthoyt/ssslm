@@ -425,8 +425,15 @@ class GLiNERGrounder(Grounder, WrappedMatcher):
         :param matcher: A pre-defined matcher
         :param model: The name of a :mod:`gliner` model. See
             https://huggingface.co/models?library=gliner for a list of models
-        :param labels:
-        :param threshold:
+        :param labels: The labels for entity types.
+
+            .. warning::
+
+                These aren't specifically defined anywhere in the GLiNER docs, so you'll
+                have to experiment with them
+
+        :param threshold: The score threshold for predictions. Defaults to 0.5 if not
+            given.
 
         In the following example, a GLiNER grounder is instantiated using an underlying
         Gilda matcher, which incorporates the disease branch of Medical Subject Headings

@@ -2,15 +2,24 @@ Named Entity Recognition
 ========================
 
 The SSSLM software package contains a submodule :mod:`ssslm.ner` for named entity
-recognition (NER) and named entity normalization (NEN) that provides a standard class
-API and data model encoded with :mod:`pydantic` models.
+normalization (NEN) and named entity recognition (NER) and that provides a standard
+class API and data model encoded with :mod:`pydantic` models.
 
-By default, SSSLM wraps the NER/NEN system implemented in :mod:`gilda` because of its
+By default, SSSLM wraps the NEN/NER system implemented in :mod:`gilda` because of its
 speed and lack of heavy dependencies. SSSLM also wraps the more powerful :mod:`spacy`
-NER system, though it is typically difficult to install and figure.
+and :mod:`gliner` NER systems, though they require more complex installation, setup, and
+configuration.
 
-SSSLM can be extended to other NER/NEN systems by subclassing :class:`ssslm.ner.Matcher`
-(for NEN) or :class:`ssslm.ner.Annotator` (for NER).
+The following NEN systems have been directly wrapped by SSSLM:
+
+===================================== =============================== =================
+NEN System                            Class                           Implementation
+===================================== =============================== =================
+`Gilda                                :class:`ssslm.ner.GildaMatcher` Dictionary lookup
+<https://github.com/gyorilab/gilda>`_
+===================================== =============================== =================
+
+The following NER systems have been directly wrapped by SSSLM:
 
 ============================================= ================================= =================================
 NER System                                    Class                             Implementation
@@ -19,6 +28,10 @@ NER System                                    Class                             
 `SpaCy <https://spacy.io>`_                   :class:`ssslm.ner.SpacyGrounder`  ??
 `GLiNER <https://github.com/urchade/GLiNER>`_ :class:`ssslm.ner.GLiNERGrounder` Bi-directional transformer (BERT)
 ============================================= ================================= =================================
+
+SSSLM can be extended to other NER/NEN systems by subclassing :class:`ssslm.ner.Matcher`
+(for NEN), :class:`ssslm.ner.Annotator` (for NER), or :class:`ssslm.ner.Grounder` (for
+combine NEN/NER).
 
 Case Study
 ----------
