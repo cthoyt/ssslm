@@ -165,10 +165,7 @@ class TestNER(unittest.TestCase):
         )
         self._test_ner_alzheimer(grounder)
 
-    @unittest.skipUnless(
-        importlib.util.find_spec("gliner"),
-        reason="Need GLiNER installed",
-    )
+    @unittest.skipUnless(importlib.util.find_spec("gliner"), reason="Need GLiNER installed")
     def test_gliner(self) -> None:
         """Test GLiNER NER."""
         grounder = GLiNERGrounder(
