@@ -12,12 +12,11 @@ configuration.
 
 The following NEN systems have been directly wrapped by SSSLM:
 
-===================================== =============================== =================
-NEN System                            Class                           Implementation
-===================================== =============================== =================
-`Gilda                                :class:`ssslm.ner.GildaMatcher` Dictionary lookup
-<https://github.com/gyorilab/gilda>`_
-===================================== =============================== =================
+============================================ =============================== =================
+NEN System                                   Class                           Implementation
+============================================ =============================== =================
+`Gilda <https://github.com/gyorilab/gilda>`_ :class:`ssslm.ner.GildaMatcher` Dictionary lookup
+============================================ =============================== =================
 
 The following NER systems have been directly wrapped by SSSLM:
 
@@ -25,7 +24,7 @@ The following NER systems have been directly wrapped by SSSLM:
 NER System                                    Class                             Implementation
 ============================================= ================================= =================================
 `Gilda <https://github.com/gyorilab/gilda>`_  :class:`ssslm.ner.GildaGrounder`  Dictionary lookup
-`SpaCy <https://spacy.io>`_                   :class:`ssslm.ner.SpacyGrounder`  ??
+`SpaCy <https://spacy.io>`_                   :class:`ssslm.ner.SpacyGrounder`  transition-based sequence model
 `GLiNER <https://github.com/urchade/GLiNER>`_ :class:`ssslm.ner.GLiNERGrounder` Bi-directional transformer (BERT)
 ============================================= ================================= =================================
 
