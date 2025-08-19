@@ -1,8 +1,7 @@
 Usage
 =====
 
-.. automodule:: ssslm.model
-    :members:
+.. automodapi:: ssslm.model
+    :no-inheritance-diagram:
 
-.. automodule:: ssslm.ner
-    :members:
+.. automodapi:: ssslm.ner
