@@ -465,6 +465,7 @@ class GLiNERGrounder(Grounder, WrappedMatcher):
     def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
         """Annotate the text the GLiNER annotator and the wrapped matcher."""
         entities = self.model.predict_entities(text, self.labels, threshold=self.threshold)
+        # TODO this also has an entity['score'] that could be used
         return [
             Annotation(text=entity["text"], match=match, start=entity["start"], end=entity["end"])
             for entity in entities

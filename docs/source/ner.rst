@@ -12,6 +12,14 @@ NER system, though it is typically difficult to install and figure.
 SSSLM can be extended to other NER/NEN systems by subclassing :class:`ssslm.ner.Matcher`
 (for NEN) or :class:`ssslm.ner.Annotator` (for NER).
 
+============================================= ================================= =================================
+NER System                                    Class                             Implementation
+============================================= ================================= =================================
+`Gilda <https://github.com/gyorilab/gilda>`_  :class:`ssslm.ner.GildaGrounder`  Dictionary lookup
+`SpaCy <https://spacy.io>`_                   :class:`ssslm.ner.SpacyGrounder`  ??
+`GLiNER <https://github.com/urchade/GLiNER>`_ :class:`ssslm.ner.GLiNERGrounder` Bi-directional transformer (BERT)
+============================================= ================================= =================================
+
 Case Study
 ----------
 
