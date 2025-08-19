@@ -144,6 +144,9 @@ scispacy = [
     # spacy hasn't been updated to link properly to new numpy
     "numpy<2.0 ; python_version < '3.11'",
 ]
+gliner = [
+    "gliner",
+]
 web = [
     "fastapi",
     "uvicorn",

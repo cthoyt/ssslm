@@ -27,13 +27,16 @@ from .model import (
 
 if TYPE_CHECKING:
     import gilda
+    import gliner
     import pandas as pd
     import spacy
     import spacy.tokens
 
 __all__ = [
+    "GLINER_DEFAULT",
     "Annotation",
     "Annotator",
+    "GLiNERGrounder",
     "GildaGrounder",
     "GildaMatcher",
     "Grounder",
@@ -402,6 +405,86 @@ class SpacyGrounder(Grounder, WrappedMatcher):
             Annotation(text=text, match=match, start=entity.start_char, end=entity.end_char)
             for entity in document.ents
             for match in self.get_matches(entity.text, **kwargs)
+        ]
+
+
+#: The default model used for GLiNER. See
+#: `here <https://huggingface.co/models?library=gliner>`_
+#: for a list of available alternatives.
+GLINER_DEFAULT = "urchade/gliner_medium-v2.1"
+
+
+class GLiNERGrounder(Grounder, WrappedMatcher):
+    """An annotator that works via :mod:`gliner`."""
+
+    model: gliner.GLiNER
+
+    def __init__(
+        self,
+        matcher: Matcher,
+        *,
+        model: str | gliner.GLiNER | None = None,
+        labels: list[str],
+        threshold: float | None = None,
+    ) -> None:
+        """Create a grounder based on a pre-defined matcher and a :mod:`gliner` NER model.
+
+        :param matcher: A pre-defined matcher
+        :param model: The name of a :mod:`gliner` model. See `here
+            <https://huggingface.co/models?library=gliner>`_ for a list of models. If
+            not given, defaults to :data:`GLINER_DEFAULT`.
+        :param labels: The labels for entity types.
+
+            .. warning::
+
+                These aren't specifically defined anywhere in the GLiNER docs, so you'll
+                have to experiment with them
+
+        :param threshold: The score threshold for predictions. Defaults to 0.5 if not
+            given.
+
+        In the following example, a GLiNER grounder is instantiated using an underlying
+        Gilda matcher, which incorporates the disease branch of Medical Subject Headings
+        (MeSH).
+
+        .. code-block:: python
+
+            import spacy
+            from ssslm import GildaMatcher, GLiNERGrounder
+
+            matcher = GildaMatcher.default()
+            grounder = GLiNERGrounder(
+                matcher=matcher,
+                model="urchade/gliner_medium-v2.1",
+                labels=["disease", "protein", "gene"],
+            )
+            annotations = grounder.annotate(
+                "The APOE e4 mutation is correlated with risk for Alzheimer's disease."
+            )
+        """
+        super().__init__(matcher=matcher)
+
+        if model is None:
+            model = GLINER_DEFAULT
+        if isinstance(model, str):
+            from gliner import GLiNER
+
+            cache_dir = pystow.module("gliner").base
+            self.model = GLiNER.from_pretrained(model, cache_dir=cache_dir)
+        else:
+            self.model = model
+
+        self.labels = labels
+        self.threshold = threshold or 0.5
+
+    def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+        """Annotate the text the GLiNER annotator and the wrapped matcher."""
+        entities = self.model.predict_entities(text, self.labels, threshold=self.threshold)
+        # TODO this also has an entity['score'] that could be used
+        return [
+            Annotation(text=entity["text"], match=match, start=entity["start"], end=entity["end"])
+            for entity in entities
+            for match in self.get_matches(entity["text"], **kwargs)
         ]
 
 
