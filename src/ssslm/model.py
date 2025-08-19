@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 __all__ = [
     "DEFAULT_PREDICATE",
     "PREDICATES",
+    "GildaErrorPolicy",
     "LiteralMapping",
     "LiteralMappingIndex",
     "LiteralMappingTuple",

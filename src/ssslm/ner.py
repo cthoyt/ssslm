@@ -18,7 +18,7 @@ from pydantic import BaseModel
 from pystow.utils import safe_open_dict_reader, safe_open_writer
 from typing_extensions import Self
 
-from ssslm.model import (
+from .model import (
     GildaErrorPolicy,
     LiteralMapping,
     literal_mappings_to_gilda,
