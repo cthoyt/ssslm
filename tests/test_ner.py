@@ -158,14 +158,15 @@ class TestNER(unittest.TestCase):
 
         spacy_model = spacy.load("en_core_sci_sm")
 
+        matcher = GildaMatcher.default()
         grounder = SpacyGrounder(
-            matcher=GildaMatcher.default(),
+            matcher=matcher,
             spacy_model=spacy_model,
         )
         self._test_ner_alzheimer(grounder)
 
     @unittest.skipUnless(
-        all(importlib.util.find_spec(name) for name in ["gliner"]),
+        importlib.util.find_spec("gliner"),
         reason="Need GLiNER installed",
     )
     def test_gliner(self) -> None:
