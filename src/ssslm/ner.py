@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     import spacy.tokens
 
 __all__ = [
+    "GLINER_DEFAULT",
     "Annotation",
     "Annotator",
     "GLiNERGrounder",
@@ -407,6 +408,12 @@ class SpacyGrounder(Grounder, WrappedMatcher):
         ]
 
 
+#: The default model used for GLiNER. See
+#: `here <https://huggingface.co/models?library=gliner>`_
+#: for a list of available alternatives.
+GLINER_DEFAULT = "urchade/gliner_medium-v2.1"
+
+
 class GLiNERGrounder(Grounder, WrappedMatcher):
     """An annotator that works via :mod:`gliner`."""
 
@@ -424,7 +431,8 @@ class GLiNERGrounder(Grounder, WrappedMatcher):
 
         :param matcher: A pre-defined matcher
         :param model: The name of a :mod:`gliner` model. See
-            https://huggingface.co/models?library=gliner for a list of models
+            `here <https://huggingface.co/models?library=gliner>`_ for a list of models.
+            If not given, defaults to :data:`GLINER_DEFAULT`.
         :param labels: The labels for entity types.
 
             .. warning::
@@ -457,7 +465,7 @@ class GLiNERGrounder(Grounder, WrappedMatcher):
         super().__init__(matcher=matcher)
 
         if model is None:
-            model = "urchade/gliner_medium-v2.1"
+            model = GLINER_DEFAULT
         if isinstance(model, str):
             from gliner import GLiNER
 
