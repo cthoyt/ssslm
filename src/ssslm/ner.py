@@ -430,9 +430,9 @@ class GLiNERGrounder(Grounder, WrappedMatcher):
         """Create a grounder based on a pre-defined matcher and a :mod:`gliner` NER model.
 
         :param matcher: A pre-defined matcher
-        :param model: The name of a :mod:`gliner` model. See
-            `here <https://huggingface.co/models?library=gliner>`_ for a list of models.
-            If not given, defaults to :data:`GLINER_DEFAULT`.
+        :param model: The name of a :mod:`gliner` model. See `here
+            <https://huggingface.co/models?library=gliner>`_ for a list of models. If
+            not given, defaults to :data:`GLINER_DEFAULT`.
         :param labels: The labels for entity types.
 
             .. warning::
