@@ -15,6 +15,8 @@ from ssslm import LiteralMapping
 from ssslm.ner import (
     Annotation,
     GildaMatcher,
+    GLiNERGrounder,
+    Grounder,
     Match,
     SpacyGrounder,
     make_grounder,
@@ -156,11 +158,26 @@ class TestNER(unittest.TestCase):
 
         spacy_model = spacy.load("en_core_sci_sm")
 
-        matcher = GildaMatcher.default()
         grounder = SpacyGrounder(
-            matcher=matcher,
+            matcher=GildaMatcher.default(),
             spacy_model=spacy_model,
         )
+        self._test_ner_alzheimer(grounder)
+
+    @unittest.skipUnless(
+        all(importlib.util.find_spec(name) for name in ["gliner"]),
+        reason="Need GLiNER installed",
+    )
+    def test_gliner(self) -> None:
+        """Test GLiNER NER."""
+        grounder = GLiNERGrounder(
+            matcher=GildaMatcher.default(),
+            labels=["disease"],
+        )
+        self._test_ner_alzheimer(grounder)
+
+    def _test_ner_alzheimer(self, grounder: Grounder) -> None:
+        """Test grounding a sentence mentioning Alzheimer's disease."""
         annotations = grounder.annotate(
             "The APOE e4 mutation is correlated with risk for Alzheimer's disease."
         )
