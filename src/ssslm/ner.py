@@ -463,6 +463,7 @@ class GLiNERGrounder(Grounder, WrappedMatcher):
         self.threshold = threshold or 0.5
 
     def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+        """Annotate the text the GLiNER annotator and the wrapped matcher."""
         entities = self.model.predict_entities(text, self.labels, threshold=self.threshold)
         return [
             Annotation(text=entity["text"], match=match, start=entity["start"], end=entity["end"])
