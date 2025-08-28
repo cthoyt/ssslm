@@ -154,7 +154,7 @@ web = [
 pandas = [
     "pandas",
 ]
-skos = [
+rdflib = [
     "rdflib",
 ]
 

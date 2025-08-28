@@ -34,8 +34,12 @@ TEST_TTL = """\
         <s1035>, <s1015>, <s1016>, <s1017>, <s1046>, <s1019>, <s1020>, <s1036>,
         <s1021>, <s1022>, <s1023>, <s1037>, <s1038>, <s1043>, <s1024>, <s1025>,
         <s1026>, <s1027>, <s1028>, <s1029>, <s1039>, <s1030>, <s1031>, <s1032>,
-        <s1033>
-        .
+        <s1033> .
+
+<s1000> a skos:Concept ;
+    skos:prefLabel "Alt-Griechisch"@de ;
+    skos:closeMatch oeh:20003 ;
+    skos:topConceptOf <> .
 
 <s1019> a skos:Concept ;
     skos:prefLabel "MINT"@de ;
@@ -88,7 +92,7 @@ class TestSKOS(unittest.TestCase):
         """Test getting names."""
         names = _get_names(self.graph, URI_PREFIX)
         self.assertNotEqual(0, len(names), msg="no names extracted")
-        self.assertIn("s1000", names)
+        self.assertIn("s1000", names, msg=f"Names: {names}")
         self.assertEqual("Alt-Griechisch", names["s1000"])
 
     def test_names_constructed(self) -> None:
