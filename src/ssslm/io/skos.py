@@ -1,7 +1,7 @@
 """Read literal mappings from RDF."""
 
 from collections import defaultdict
-from typing import TypeAlias
+from typing import NamedTuple
 
 import rdflib
 from curies import NamableReference
@@ -90,27 +90,40 @@ def _ensure_prefixes(
     return curie_prefix, uri_prefix
 
 
-PP: TypeAlias = tuple[rdflib.URIRef, str, str]
+class _LabelTuple(NamedTuple):
+    """A tuple representing a language."""
+
+    predicate: rdflib.URIRef
+    language: str
+    value: str
 
 
-def _rank_pp(pp: PP):
-    if pp[1] == "en":
-        two = (0, "en")
+def _rank_label_tuple(label_tuple: _LabelTuple) -> tuple[int, int, str, str]:
+    if label_tuple[1] == "en":
+        language_priority = 0
     else:
-        two = (1, pp[1])
-    return LABEL_PREDICATES[pp[0]], two, pp[2]
+        language_priority = 1
+    return (
+        LABEL_PREDICATES[label_tuple[0]],
+        language_priority,
+        label_tuple.language,
+        label_tuple.value,
+    )
 
 
 def _get_names(graph: rdflib.Graph, uri_prefix: str) -> dict[str, str]:
     # Step 1, get the best possible label. Use a hierarchy of label types and languages
-    names_dd: defaultdict[str, list[PP]] = defaultdict(list)
+    names_dd: defaultdict[str, list[_LabelTuple]] = defaultdict(list)
     for uri, predicate, name in graph.query(BEST_NAME_QUERY):
-        if not uri.startswith(uri_prefix):
+        if not str(uri).startswith(uri_prefix):
             continue
-        names_dd[uri.removeprefix(uri_prefix)].append((predicate, name._language, name._label))
+        names_dd[uri.removeprefix(uri_prefix)].append(
+            _LabelTuple(predicate, name._language, name._value)
+        )
 
     names: dict[str, str] = {
-        identifier: min(pps, key=_rank_pp)[2] for identifier, pps in names_dd.items()
+        identifier: min(label_tuples, key=_rank_label_tuple).value
+        for identifier, label_tuples in names_dd.items()
     }
     return names
 
