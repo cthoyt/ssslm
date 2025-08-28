@@ -170,6 +170,16 @@ def read_skos(
     .. warning::
 
         This function assumes there is only one ``skos:ConceptScheme`` in the graph
+
+    Example usage:
+
+    .. code-block:: python
+
+        import ssslm
+
+        url = "https://raw.githubusercontent.com/dini-ag-kim/schulfaecher/refs/heads/main/schulfaecher.ttl"
+        literal_mappings = ssslm.read_skos(url)
+
     """
     graph = _ensure_graph(graph)
     curie_prefix, uri_prefix = _ensure_prefixes(
