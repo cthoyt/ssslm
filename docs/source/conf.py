@@ -249,6 +249,7 @@ intersphinx_mapping = {
     "bioregistry": ("https://bioregistry.readthedocs.io/en/latest", None),
     "gilda": ("https://gilda.readthedocs.io/en/latest", None),
     "nltk": ("https://nltk.readthedocs.io/en/latest", None),
+    "rdflib": ("https://rdflib.readthedocs.io/en/latest", None),
 }
 
 autoclass_content = "both"
