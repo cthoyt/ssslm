@@ -6,8 +6,8 @@ from typing import ClassVar
 import rdflib
 from curies import NamableReference, Reference
 
-from ssslm import LiteralMapping
-from ssslm.io.skos import _ensure_prefixes, _get_names, read_from_skos
+from ssslm import LiteralMapping, read_skos
+from ssslm.io.skos import _ensure_prefixes, _get_names
 
 TEST_URL = (
     "https://raw.githubusercontent.com/dini-ag-kim/schulfaecher/refs/heads/main/schulfaecher.ttl"
@@ -19,7 +19,6 @@ TEST_TTL = """\
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix oeh: <http://w3id.org/openeduhub/vocabs/discipline/> .
 @prefix vann: <http://purl.org/vocab/vann/> .
-
 
 <> a skos:ConceptScheme ;
     dct:title "Schulfächer"@de ;
@@ -123,7 +122,7 @@ class TestSKOS(unittest.TestCase):
 
     def test_read_skos(self) -> None:
         """Test reading SKOS."""
-        literal_mappings = read_from_skos(self.graph, uri_prefix=URI_PREFIX)
+        literal_mappings = read_skos(self.graph, uri_prefix=URI_PREFIX)
         self.assertNotEqual(0, len(literal_mappings), msg="no mappings extracted")
         self.assertIn(TEST_LITERAL_1, literal_mappings)
         self.assertIn(TEST_LITERAL_2, literal_mappings)

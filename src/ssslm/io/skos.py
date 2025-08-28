@@ -1,28 +1,42 @@
 """Read literal mappings from RDF."""
 
 from collections import defaultdict
-from typing import NamedTuple
+from functools import lru_cache
+from typing import TYPE_CHECKING, NamedTuple
 
-import rdflib
 from curies import NamableReference, Reference
 from curies.vocabulary import has_label
-from rdflib import RDFS, SKOS
 
-from ssslm import LiteralMapping
+from ssslm.model import LiteralMapping
+
+if TYPE_CHECKING:
+    import rdflib
 
 __all__ = [
-    "read_from_skos",
+    "read_skos",
 ]
 
-LABEL_PREDICATES = {
-    RDFS.label: 0,
-    SKOS.prefLabel: 1,
-}
-PRED_TO_REF = {
-    RDFS.label: has_label,
-    SKOS.prefLabel: Reference(prefix="skos", identifier="prefLabel"),
-    SKOS.altLabel: Reference(prefix="skos", identifier="altLabel"),
-}
+
+@lru_cache(1)
+def _get_label_predicates() -> dict[rdflib.URIRef, int]:
+    from rdflib import RDFS, SKOS
+
+    return {
+        RDFS.label: 0,
+        SKOS.prefLabel: 1,
+    }
+
+
+@lru_cache(1)
+def _get_predicate_to_ref() -> dict[rdflib.URIRef, Reference]:
+    from rdflib import RDFS, SKOS
+
+    return {
+        RDFS.label: has_label,
+        SKOS.prefLabel: Reference(prefix="skos", identifier="prefLabel"),
+        SKOS.altLabel: Reference(prefix="skos", identifier="altLabel"),
+    }
+
 
 BEST_NAME_QUERY = """\
     SELECT ?uri ?predicate ?name
@@ -60,6 +74,8 @@ GET_CURIE_PREFIX = """\
 
 
 def _ensure_graph(x: str | rdflib.Graph) -> rdflib.Graph:
+    import rdflib
+
     if isinstance(x, rdflib.Graph):
         return x
     rv = rdflib.Graph()
@@ -103,7 +119,7 @@ def _rank_label_tuple(label_tuple: _LabelTuple) -> tuple[int, int, str, str]:
     else:
         language_priority = 1
     return (
-        LABEL_PREDICATES[label_tuple[0]],
+        _get_label_predicates()[label_tuple.predicate],
         language_priority,
         label_tuple.language,
         label_tuple.value,
@@ -127,10 +143,32 @@ def _get_names(graph: rdflib.Graph, uri_prefix: str) -> dict[str, str]:
     return names
 
 
-def read_from_skos(
+def read_skos(
     graph: str | rdflib.Graph, curie_prefix: str | None = None, uri_prefix: str | None = None
 ) -> list[LiteralMapping]:
-    """Read literal mappings from a SKOS vocabulary."""
+    """Read literal mappings from a SKOS.
+
+    :param graph: Either a URL to a SKOS concept scheme or a pre-parsed SKOS concept
+        scheme in a :class:`rdflib.Graph`.
+    :param curie_prefix: The CURIE prefix used to parse the SKOS graph. If not given,
+        will try to infer by querying the vocabulary for a
+        ``vann:preferredNamespacePrefix`` annotation on the SKOS concept scheme
+    :param uri_prefix: The URI prefix used to identify terms from the SKOS vocabulary.
+        If not given, will try to infer by querying the vocabulary for a
+        ``vann:preferredNamespaceUri`` annotation on the SKOS concept scheme
+
+    :returns: A list of literal mappings
+
+    This function will look for ``rdfs:label``, ``skos:prefLabel``, and
+    ``skos:altLabel``. It will automatically assign a canonical label prioritizing
+    ``rdfs:label`` over ``skos:prefLabel`` and English over other languages. It
+    maintains the predicates in the literal mappings and does not attempt to map to OBO
+    in OWL predicates.
+
+    .. warning::
+
+        This function assumes there is only one ``skos:ConceptScheme`` in the graph
+    """
     graph = _ensure_graph(graph)
     curie_prefix, uri_prefix = _ensure_prefixes(
         graph, curie_prefix=curie_prefix, uri_prefix=uri_prefix
@@ -146,14 +184,16 @@ def read_from_skos(
             name=names.get(identifier),
         )
 
+    predicate_uri_to_reference = _get_predicate_to_ref()
+
     rv = [
         LiteralMapping(
             reference=_get_reference(uri),
             text=str(value),
             language=value._language,
-            predicate=PRED_TO_REF[predicate],
+            predicate=predicate_uri_to_reference[predicate_uri],
         )
-        for uri, predicate, value in graph.query(LM_QUERY)
+        for uri, predicate_uri, value in graph.query(LM_QUERY)
         if uri.startswith(uri_prefix)
     ]
     return rv

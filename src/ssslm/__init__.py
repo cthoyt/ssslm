@@ -1,5 +1,6 @@
 """A simple standard for sharing literal mappings."""
 
+from .io import read_skos
 from .model import (
     DEFAULT_PREDICATE,
     PREDICATES,
@@ -55,6 +56,7 @@ __all__ = [
     "read_annotations",
     "read_gilda_terms",
     "read_literal_mappings",
+    "read_skos",
     "remap_literal_mappings",
     "write_annotations",
     "write_gilda_terms",
