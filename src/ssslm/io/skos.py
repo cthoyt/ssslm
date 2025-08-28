@@ -1,8 +1,12 @@
 """Read literal mappings from RDF."""
 
+from collections import defaultdict
+from typing import TypeAlias
+
 import rdflib
 from curies import NamableReference
 from curies.vocabulary import has_label
+from rdflib import RDFS, SKOS
 
 from ssslm import LiteralMapping
 
@@ -10,11 +14,16 @@ __all__ = [
     "read_from_skos",
 ]
 
+LABEL_PREDICATES = {
+    RDFS.label: 0,
+    SKOS.prefLabel: 1,
+}
+
 BEST_NAME_QUERY = """\
-    SELECT ?uri ?name
+    SELECT ?uri ?predicate ?name
     WHERE {
-        ?uri skos:prefLabel|rdfs:label ?name .
-        FILTER(LANG(?name) = 'en')
+        VALUES ?predicate { skos:prefLabel rdfs:label }
+        ?uri ?predicate ?name .
     }
 """
 
@@ -40,7 +49,6 @@ GET_URI_PREFIX = """\
     }
     LIMIT 1
 """
-
 
 GET_CURIE_PREFIX = """\
     SELECT ?curie_prefix
@@ -82,6 +90,31 @@ def _ensure_prefixes(
     return curie_prefix, uri_prefix
 
 
+PP: TypeAlias = tuple[rdflib.URIRef, str, str]
+
+
+def _rank_pp(pp: PP):
+    if pp[1] == "en":
+        two = (0, "en")
+    else:
+        two = (1, pp[1])
+    return LABEL_PREDICATES[pp[0]], two, pp[2]
+
+
+def _get_names(graph: rdflib.Graph, uri_prefix: str) -> dict[str, str]:
+    # Step 1, get the best possible label. Use a hierarchy of label types and languages
+    names_dd: defaultdict[str, list[PP]] = defaultdict(list)
+    for uri, predicate, name in graph.query(BEST_NAME_QUERY):
+        if not uri.startswith(uri_prefix):
+            continue
+        names_dd[uri.removeprefix(uri_prefix)].append((predicate, name._language, name._label))
+
+    names: dict[str, str] = {
+        identifier: min(pps, key=_rank_pp)[2] for identifier, pps in names_dd.items()
+    }
+    return names
+
+
 def read_from_skos(
     graph: str | rdflib.Graph, curie_prefix: str | None = None, uri_prefix: str | None = None
 ) -> list[LiteralMapping]:
@@ -93,8 +126,7 @@ def read_from_skos(
 
     rv = []
 
-    # Step 1, get the best possible label. Use a hierarchy of label types and languages
-    names = {uri.removeprefix(uri_prefix): str(name) for uri, name in graph.query(BEST_NAME_QUERY)}
+    names = _get_names(graph, uri_prefix)
 
     for uri, name in graph.query(ALL_NAME_QUERY):
         if not uri.startswith(uri_prefix):

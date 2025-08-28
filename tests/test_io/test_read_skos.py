@@ -7,11 +7,12 @@ import rdflib
 from curies import NamableReference, Reference
 
 from ssslm import LiteralMapping
-from ssslm.io.skos import _ensure_graph, _ensure_prefixes, read_from_skos
+from ssslm.io.skos import _ensure_graph, _ensure_prefixes, _get_names, read_from_skos
 
 TEST_URL = (
     "https://raw.githubusercontent.com/dini-ag-kim/schulfaecher/refs/heads/main/schulfaecher.ttl"
 )
+URI_PREFIX = "https://w3id.org/kim/schulfaecher/"
 
 TEST_LITERAL_1 = LiteralMapping(
     text="MINT",
@@ -48,6 +49,13 @@ class TestSKOS(unittest.TestCase):
         self.assertEqual(
             ("subj", "https://w3id.org/kim/schulfaecher/"), _ensure_prefixes(self.graph)
         )
+
+    def test_names(self) -> None:
+        """Test getting names."""
+        names = _get_names(self.graph, URI_PREFIX)
+        self.assertNotEqual(0, len(names), msg="no names extracted")
+        self.assertIn("s1000", names)
+        self.assertEqual("Alt-Griechisch", names["s1000"])
 
     def test_read_skos(self) -> None:
         """Test reading SKOS."""
