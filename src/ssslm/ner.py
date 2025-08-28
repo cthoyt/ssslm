@@ -13,8 +13,8 @@ from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Un
 
 import curies
 import pystow
-from curies import NamableReference, NamedReference
-from pydantic import BaseModel
+from curies import NamableReference, NamedReference, Reference
+from pydantic import BaseModel, Field
 from pystow.utils import safe_open_dict_reader, safe_open_writer
 from typing_extensions import Self
 
@@ -171,6 +171,7 @@ class Annotation(BaseModel):
     start: int
     end: int
     match: Match
+    part: Reference | None = Field(None, description="The document part from which the annotation was derived, usually a child of IAO:0000314")
 
     @property
     def reference(self) -> NamableReference:
