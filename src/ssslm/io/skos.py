@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import NamedTuple
 
 import rdflib
-from curies import NamableReference
+from curies import NamableReference, Reference
 from curies.vocabulary import has_label
 from rdflib import RDFS, SKOS
 
@@ -18,6 +18,11 @@ LABEL_PREDICATES = {
     RDFS.label: 0,
     SKOS.prefLabel: 1,
 }
+PRED_TO_REF = {
+    RDFS.label: has_label,
+    SKOS.prefLabel: Reference(prefix="skos", identifier="prefLabel"),
+    SKOS.altLabel: Reference(prefix="skos", identifier="altLabel"),
+}
 
 BEST_NAME_QUERY = """\
     SELECT ?uri ?predicate ?name
@@ -27,17 +32,11 @@ BEST_NAME_QUERY = """\
     }
 """
 
-ALL_NAME_QUERY = """\
-    SELECT ?uri ?name
+LM_QUERY = """\
+    SELECT ?uri ?predicate ?name
     WHERE {
-        ?uri skos:prefLabel|rdfs:label ?name .
-    }
-"""
-
-SYNONYM_QUERY = """\
-    SELECT ?uri ?synonym
-    WHERE {
-        ?uri skos:altLabel ?synonym .
+        VALUES ?predicate { skos:prefLabel rdfs:label skos:altLabel }
+        ?uri ?predicate ?name .
     }
 """
 
@@ -137,39 +136,24 @@ def read_from_skos(
         graph, curie_prefix=curie_prefix, uri_prefix=uri_prefix
     )
 
-    rv = []
-
     names = _get_names(graph, uri_prefix)
 
-    for uri, name in graph.query(ALL_NAME_QUERY):
-        if not uri.startswith(uri_prefix):
-            continue
-        identifier = uri.removeprefix(uri_prefix)
-        rv.append(
-            LiteralMapping(
-                reference=NamableReference(
-                    prefix=curie_prefix,
-                    identifier=identifier,
-                    name=names.get(identifier) or str(name),
-                ),
-                text=str(name),
-                language=name._language,
-                predicate=has_label,
-            )
+    def _get_reference(uri_ref: rdflib.URIRef) -> NamableReference:
+        identifier = uri_ref.removeprefix(uri_prefix)
+        return NamableReference(
+            prefix=curie_prefix,
+            identifier=identifier,
+            name=names.get(identifier),
         )
 
-    for uri, synonym in graph.query(SYNONYM_QUERY):
-        if not uri.startswith(uri_prefix):
-            continue
-        identifier = uri.removeprefix(uri_prefix)
-        rv.append(
-            LiteralMapping(
-                reference=NamableReference(
-                    prefix=curie_prefix, identifier=identifier, name=names.get(identifier)
-                ),
-                text=str(synonym),
-                language=synonym._language,
-            )
+    rv = [
+        LiteralMapping(
+            reference=_get_reference(uri),
+            text=str(value),
+            language=value._language,
+            predicate=PRED_TO_REF[predicate],
         )
-
+        for uri, predicate, value in graph.query(LM_QUERY)
+        if uri.startswith(uri_prefix)
+    ]
     return rv
