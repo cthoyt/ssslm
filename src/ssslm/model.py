@@ -47,6 +47,7 @@ __all__ = [
 
 
 PANDAS_AVAILABLE = importlib.util.find_spec("pandas")
+GILDA_AVAILABLE = importlib.util.find_spec("gilda")
 
 
 class LiteralMappingTuple(NamedTuple):

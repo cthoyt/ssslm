@@ -1,19 +1,26 @@
 """Tests for the grounding web app."""
 
+import importlib.util
 import unittest
 
 from curies import NamableReference
-from starlette.testclient import TestClient
 
 from ssslm import Annotation, LiteralMapping, Match, make_grounder
-from ssslm.web import get_app
 
 
+@unittest.skipUnless(
+    all(importlib.util.find_spec(x) for x in ["starlette", "fastapi"]),
+    reason="ssslm[web] is required",
+)
 class TestApp(unittest.TestCase):
     """Tests for the grounding web app."""
 
     def setUp(self) -> None:
         """Set up a test app."""
+        from starlette.testclient import TestClient
+
+        from ssslm.web import get_app
+
         literal_mappings = [
             LiteralMapping(
                 reference=NamableReference(prefix="p1", identifier="i1", name="n1"),

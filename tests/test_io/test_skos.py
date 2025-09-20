@@ -1,13 +1,18 @@
 """Tests for SKOS I/O."""
 
-import unittest
-from typing import ClassVar
+from __future__ import annotations
 
-import rdflib
+import importlib.util
+import unittest
+from typing import TYPE_CHECKING, ClassVar
+
 from curies import NamableReference, Reference
 
 from ssslm import LiteralMapping, read_skos
 from ssslm.io.skos import _ensure_prefixes, _get_names
+
+if TYPE_CHECKING:
+    import rdflib
 
 TEST_URL = (
     "https://raw.githubusercontent.com/dini-ag-kim/schulfaecher/refs/heads/main/schulfaecher.ttl"
@@ -71,6 +76,7 @@ TEST_LITERAL_3 = LiteralMapping(
 )
 
 
+@unittest.skipUnless(importlib.util.find_spec("rdflib"), reason="These tests require rdflib")
 class TestSKOS(unittest.TestCase):
     """Test reading SKOS."""
 
@@ -79,6 +85,8 @@ class TestSKOS(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         """Test up the test case."""
+        import rdflib
+
         cls.graph = rdflib.Graph()
         cls.graph.parse(data=TEST_TTL)
 
@@ -97,6 +105,8 @@ class TestSKOS(unittest.TestCase):
 
     def test_names_constructed(self) -> None:
         """Test getting names from a constructed example."""
+        import rdflib
+
         ttl = """\
             @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
             @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .

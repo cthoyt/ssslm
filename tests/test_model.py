@@ -6,7 +6,6 @@ import typing
 import unittest
 from pathlib import Path
 
-import gilda
 import responses
 from curies import NamableReference, Reference
 from curies import vocabulary as v
@@ -14,6 +13,7 @@ from pydantic import model_validator
 
 import ssslm
 from ssslm.model import DEFAULT_PREDICATE, PANDAS_AVAILABLE, LiteralMapping, Writer
+from tests.cases import REQUIRES_GILDA
 
 TR_1 = NamableReference.from_curie("test:1", "test")
 TR_2 = NamableReference.from_curie("test:2", "test2")
@@ -26,6 +26,7 @@ def _s(r: Reference) -> Reference:
     return Reference(prefix=r.prefix, identifier=r.identifier)
 
 
+@REQUIRES_GILDA
 class TestGildaIO(unittest.TestCase):
     """Test converting between the SSSLM literal mapping data structure and :class:`gilda.Term`."""
 
@@ -120,6 +121,8 @@ class TestGildaIO(unittest.TestCase):
 
     def test_gilda_curated(self) -> None:
         """Test getting gilda terms."""
+        import gilda
+
         term = gilda.Term(
             "text",
             text="text",
@@ -213,6 +216,7 @@ class TestModel(unittest.TestCase):
 
             self.assertEqual(literal_mappings, reloaded_synonyms)
 
+    @REQUIRES_GILDA
     def test_gilda_io_roundtrip(self) -> None:
         """Test gilda roundtrip."""
         literal_mappings = [
