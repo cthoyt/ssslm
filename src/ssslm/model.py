@@ -17,6 +17,7 @@ from curies import NamableReference, Reference, ReferenceTuple
 from curies import vocabulary as v
 from pydantic import BaseModel, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
+from pystow.utils import safe_open_writer
 from tqdm import tqdm
 
 if TYPE_CHECKING:
@@ -387,8 +388,7 @@ def write_literal_mappings(
 
 
 def _write_builtin(*, path: Path, literal_mappings: Iterable[LiteralMapping]) -> None:
-    with path.open("w") as file:
-        writer = csv.writer(file, delimiter="\t")
+    with safe_open_writer(path) as writer:
         writer.writerow(HEADER)
         writer.writerows(literal_mapping._as_row() for literal_mapping in literal_mappings)
 
