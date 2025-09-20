@@ -6,14 +6,14 @@ import typing
 import unittest
 from pathlib import Path
 
-import gilda
 import responses
 from curies import NamableReference, Reference
 from curies import vocabulary as v
 from pydantic import model_validator
 
 import ssslm
-from ssslm.model import DEFAULT_PREDICATE, LiteralMapping, Writer
+from ssslm.model import DEFAULT_PREDICATE, PANDAS_AVAILABLE, LiteralMapping, Writer
+from tests.cases import REQUIRES_GILDA
 
 TR_1 = NamableReference.from_curie("test:1", "test")
 TR_2 = NamableReference.from_curie("test:2", "test2")
@@ -26,6 +26,7 @@ def _s(r: Reference) -> Reference:
     return Reference(prefix=r.prefix, identifier=r.identifier)
 
 
+@REQUIRES_GILDA
 class TestGildaIO(unittest.TestCase):
     """Test converting between the SSSLM literal mapping data structure and :class:`gilda.Term`."""
 
@@ -120,6 +121,8 @@ class TestGildaIO(unittest.TestCase):
 
     def test_gilda_curated(self) -> None:
         """Test getting gilda terms."""
+        import gilda
+
         term = gilda.Term(
             "text",
             text="text",
@@ -174,6 +177,11 @@ class TestModel(unittest.TestCase):
     def test_resolve_writer(self) -> None:
         """Test resolving the writer."""
 
+    def test_io_error(self) -> None:
+        """Test failure to write because of bad writer type."""
+        with self.assertRaises(ValueError), tempfile.NamedTemporaryFile() as file:
+            ssslm.write_literal_mappings([], file.name, writer="nope")  # type:ignore[arg-type]
+
     def test_io_roundtrip(self) -> None:
         """Test IO roundtrip."""
         today = datetime.date.today()
@@ -193,23 +201,22 @@ class TestModel(unittest.TestCase):
             ),
         ]
 
-        # test pandas round trip
-        df = ssslm.literal_mappings_to_df(literal_mappings)
-        reconstituted = ssslm.df_to_literal_mappings(df)
-        self.assertEqual(literal_mappings, reconstituted)
+        if PANDAS_AVAILABLE:
+            # test pandas round trip
+            df = ssslm.literal_mappings_to_df(literal_mappings)
+            reconstituted = ssslm.df_to_literal_mappings(df)
+            self.assertEqual(literal_mappings, reconstituted)
 
-        for writer in typing.get_args(Writer):
+        for writer in _iter_writers():
             # test writing/reading round trip
-            with tempfile.TemporaryDirectory() as d:
-                path = Path(d).joinpath(f"test_{writer}.tsv")
+            with self.subTest(writer=writer), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory).joinpath(f"test_{writer}.tsv")
                 ssslm.write_literal_mappings(literal_mappings, path, writer=writer)
                 reloaded_synonyms = ssslm.read_literal_mappings(path)
 
             self.assertEqual(literal_mappings, reloaded_synonyms)
 
-        with self.assertRaises(ValueError):
-            ssslm.write_literal_mappings(literal_mappings, path, writer="nope")  # type:ignore[arg-type]
-
+    @REQUIRES_GILDA
     def test_gilda_io_roundtrip(self) -> None:
         """Test gilda roundtrip."""
         literal_mappings = [
@@ -262,16 +269,17 @@ class TestModel(unittest.TestCase):
             LiteralMapping(reference=TR_1, text="test", predicate=v.has_label),
         ]
         url = "https://example.com/test.tsv"
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory).joinpath("test.tsv")
-            ssslm.write_literal_mappings(expected_literal_mappings, path)
-            responses.add(
-                responses.GET,
-                url,
-                path.read_text(),
-            )
-        literal_mappings = ssslm.read_literal_mappings(url)
-        self.assertEqual(expected_literal_mappings, literal_mappings)
+        for writer in _iter_writers():
+            with self.subTest(writer=writer), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory).joinpath("test.tsv")
+                ssslm.write_literal_mappings(expected_literal_mappings, path, writer=writer)
+                responses.add(
+                    responses.GET,
+                    url,
+                    path.read_text(),
+                )
+            literal_mappings = ssslm.read_literal_mappings(url)
+            self.assertEqual(expected_literal_mappings, literal_mappings)
 
     @responses.activate
     def test_read_gz(self) -> None:
@@ -280,23 +288,25 @@ class TestModel(unittest.TestCase):
             LiteralMapping(reference=TR_1, text="test", predicate=v.has_label),
         ]
         url = "https://example.com/test.tsv.gz"
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory).joinpath("test.tsv.gz")
-            ssslm.write_literal_mappings(expected_literal_mappings, path)
 
-            # first, test that reading from path works
-            literal_mappings = ssslm.read_literal_mappings(path)
+        for writer in _iter_writers():
+            with self.subTest(writer=writer), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory).joinpath("test.tsv.gz")
+                ssslm.write_literal_mappings(expected_literal_mappings, path, writer=writer)
+
+                # first, test that reading from path works
+                literal_mappings = ssslm.read_literal_mappings(path)
+                self.assertEqual(expected_literal_mappings, literal_mappings)
+
+                # then, set up mocking URL for using requests
+                responses.add(
+                    responses.GET,
+                    url,
+                    path.read_bytes(),
+                )
+
+            literal_mappings = ssslm.read_literal_mappings(url)
             self.assertEqual(expected_literal_mappings, literal_mappings)
-
-            # then, set up mocking URL for using requests
-            responses.add(
-                responses.GET,
-                url,
-                path.read_bytes(),
-            )
-
-        literal_mappings = ssslm.read_literal_mappings(url)
-        self.assertEqual(expected_literal_mappings, literal_mappings)
 
     def test_custom_reference_class(self) -> None:
         """Test when using a custom reference class."""
@@ -319,12 +329,13 @@ class TestModel(unittest.TestCase):
             LiteralMapping(reference=NamableReference.from_curie("test:1", "A"), text="A"),
             LiteralMapping(reference=NamableReference.from_curie("test.custom:02", "B"), text="B"),
         ]
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory).joinpath("test.tsv")
-            ssslm.write_literal_mappings(expected_literal_mappings, path)
+        for writer in _iter_writers():
+            with self.subTest(writer=writer), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory).joinpath("test.tsv")
+                ssslm.write_literal_mappings(expected_literal_mappings, path, writer=writer)
 
-            with self.assertRaises(ValueError):
-                ssslm.read_literal_mappings(path, reference_cls=CustomReference)
+                with self.assertRaises(ValueError):
+                    ssslm.read_literal_mappings(path, reference_cls=CustomReference)
 
     def test_group(self) -> None:
         """Test grouping."""
@@ -345,8 +356,16 @@ class TestModel(unittest.TestCase):
         """Test appending a single literal mapping."""
         m1 = LiteralMapping(reference=TR_1, text="a")
         m2 = LiteralMapping(reference=TR_2, text="b")
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory).joinpath("test.ssslm.tsv")
-            ssslm.write_literal_mappings([m1], path)
-            ssslm.append_literal_mapping(m2, path)
-            self.assertEqual([m1, m2], ssslm.read_literal_mappings(path))
+        for writer in _iter_writers():
+            with self.subTest(writer=writer), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory).joinpath("test.ssslm.tsv")
+                ssslm.write_literal_mappings([m1], path, writer=writer)
+                ssslm.append_literal_mapping(m2, path)
+                self.assertEqual([m1, m2], ssslm.read_literal_mappings(path))
+
+
+def _iter_writers() -> typing.Iterable[Writer]:
+    for writer in typing.get_args(Writer):
+        if writer == "pandas" and not PANDAS_AVAILABLE:
+            continue
+        yield writer

@@ -1,31 +1,27 @@
 """Tests for NER."""
 
-import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
 
 import curies
-import gilda
-import pandas as pd
 from curies import NamedReference, Reference
 
 import ssslm
 from ssslm import LiteralMapping
+from ssslm.model import PANDAS_AVAILABLE
 from ssslm.ner import (
     Annotation,
-    GildaMatcher,
-    GLiNERGrounder,
-    Grounder,
     Match,
-    SpacyGrounder,
     make_grounder,
     read_annotations,
     write_annotations,
 )
+from tests import cases
+from tests.cases import REQUIRES_GILDA
 
 
-class TestNER(unittest.TestCase):
+class TestNER(cases.BaseNERTestCase):
     """Test NER."""
 
     def test_impl_error(self) -> None:
@@ -33,8 +29,11 @@ class TestNER(unittest.TestCase):
         with self.assertRaises(ValueError):
             make_grounder([], implementation="xxx")  # type:ignore[arg-type]
 
+    @REQUIRES_GILDA
     def test_grounder(self) -> None:
         """Test getting a grounder from a single reference."""
+        import gilda
+
         text = "test"
         reference = NamedReference.from_curie("sgd:S000000019", name="YAL021C")
         literal_mapping = LiteralMapping(reference=reference, text=text)
@@ -76,8 +75,11 @@ class TestNER(unittest.TestCase):
         self.assertEqual("YAL021C", annotation.name)
         self.assertEqual(text, annotation.substr)
 
+    @unittest.skipUnless(PANDAS_AVAILABLE, reason="This test requires pandas")
     def test_ground_df(self) -> None:
         """Test grounding a dataframe."""
+        import pandas as pd
+
         text = "test"
         reference = NamedReference.from_curie("sgd:S000000019", name="YAL021C")
         literal_mappings = [LiteralMapping(reference=reference, text=text)]
@@ -147,43 +149,3 @@ class TestNER(unittest.TestCase):
             path = Path(directory).joinpath("test.tsv")
             write_annotations([annotation], path)
             self.assertEqual([annotation], read_annotations(path))
-
-    @unittest.skipUnless(
-        all(importlib.util.find_spec(name) for name in ["spacy", "scispacy", "en_core_sci_sm"]),
-        reason="Need spacy and scispacy installed to run SpaCy tests",
-    )
-    def test_spacy(self) -> None:
-        """Test spacy NER."""
-        import spacy
-
-        spacy_model = spacy.load("en_core_sci_sm")
-
-        matcher = GildaMatcher.default()
-        grounder = SpacyGrounder(
-            matcher=matcher,
-            spacy_model=spacy_model,
-        )
-        self._test_ner_alzheimer(grounder)
-
-    @unittest.skipUnless(importlib.util.find_spec("gliner"), reason="Need GLiNER installed")
-    def test_gliner(self) -> None:
-        """Test GLiNER NER."""
-        grounder = GLiNERGrounder(
-            matcher=GildaMatcher.default(),
-            labels=["disease"],
-        )
-        self._test_ner_alzheimer(grounder)
-
-    def _test_ner_alzheimer(self, grounder: Grounder) -> None:
-        """Test grounding a sentence mentioning Alzheimer's disease."""
-        annotations = grounder.annotate(
-            "The APOE e4 mutation is correlated with risk for Alzheimer's disease."
-        )
-        annotation_index = {
-            (annotation.match.reference, annotation.start, annotation.end)
-            for annotation in annotations
-        }
-        self.assertIn(
-            (NamedReference(prefix="MESH", identifier="D000544", name="Alzheimer Disease"), 49, 68),
-            annotation_index,
-        )

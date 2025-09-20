@@ -8,15 +8,15 @@ import gzip
 import importlib.util
 import itertools as itt
 from collections import defaultdict
-from collections.abc import Generator, Iterable, Mapping
-from contextlib import contextmanager
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TextIO, TypeAlias
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeAlias
 
 from curies import NamableReference, Reference, ReferenceTuple
 from curies import vocabulary as v
 from pydantic import BaseModel, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
+from pystow.utils import safe_open, safe_open_writer
 from tqdm import tqdm
 
 if TYPE_CHECKING:
@@ -44,6 +44,10 @@ __all__ = [
     "write_gilda_terms",
     "write_literal_mappings",
 ]
+
+
+PANDAS_AVAILABLE = importlib.util.find_spec("pandas")
+GILDA_AVAILABLE = importlib.util.find_spec("gilda")
 
 
 class LiteralMappingTuple(NamedTuple):
@@ -210,6 +214,9 @@ class LiteralMapping(BaseModel):
             taxon=self.taxon.curie if self.taxon else None,
         )
 
+    def _as_row_for_writer(self) -> Sequence[str]:
+        return tuple(x or "" for x in self._as_row())
+
     @staticmethod
     def _predicate_type_from_gilda(status: GildaStatus) -> tuple[Reference, Reference | None]:
         if status == "name":
@@ -358,10 +365,11 @@ Writer = Literal["pandas", "csv"]
 
 
 def _resolve_writer(writer: Writer | None = None) -> Writer:
-    if writer is None:
-        writer = "pandas"
-    if writer == "pandas" and not importlib.util.find_spec("pandas"):
-        writer = "csv"
+    if writer is None or writer == "pandas":
+        if PANDAS_AVAILABLE:
+            return "pandas"
+        else:
+            return "csv"
     return writer
 
 
@@ -383,10 +391,11 @@ def write_literal_mappings(
 
 
 def _write_builtin(*, path: Path, literal_mappings: Iterable[LiteralMapping]) -> None:
-    with path.open("w") as file:
-        writer = csv.writer(file, delimiter="\t")
+    with safe_open_writer(path) as writer:
         writer.writerow(HEADER)
-        writer.writerows(literal_mapping._as_row() for literal_mapping in literal_mappings)
+        writer.writerows(
+            literal_mapping._as_row_for_writer() for literal_mapping in literal_mappings
+        )
 
 
 def _write_pandas(*, path: Path, literal_mappings: Iterable[LiteralMapping]) -> None:
@@ -397,7 +406,7 @@ def _write_pandas(*, path: Path, literal_mappings: Iterable[LiteralMapping]) -> 
 def append_literal_mapping(literal_mapping: LiteralMapping, path: str | Path) -> None:
     """Append a literal mapping to an existing file."""
     with Path(path).expanduser().resolve().open("a") as file:
-        print(*literal_mapping._as_row(), sep="\t", file=file)
+        print(*literal_mapping._as_row_for_writer(), sep="\t", file=file)
 
 
 def read_literal_mappings(
@@ -450,7 +459,7 @@ def read_literal_mappings(
     if path.suffix == ".numbers":
         return _parse_numbers(path, names=names, show_progress=show_progress)
 
-    with _safe_open(path) as file:
+    with safe_open(path) as file:
         return _from_lines(
             file,
             delimiter=delimiter,
@@ -489,16 +498,6 @@ def _prepare_gilda_path(path: str | Path) -> Path:
     if not path.suffix.endswith(".gz"):
         raise ValueError(f"gilda terms files are required to be gzipped and end with .gz: {path}")
     return path
-
-
-@contextmanager
-def _safe_open(path: Path) -> Generator[TextIO, None, None]:
-    if path.suffix == ".gz":
-        with gzip.open(path, mode="rt") as file:
-            yield file
-    else:
-        with open(path) as file:
-            yield file
 
 
 def _parse_numbers(
