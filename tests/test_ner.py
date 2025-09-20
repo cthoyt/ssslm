@@ -7,11 +7,11 @@ from pathlib import Path
 
 import curies
 import gilda
-import pandas as pd
 from curies import NamedReference, Reference
 
 import ssslm
 from ssslm import LiteralMapping
+from ssslm.model import PANDAS_AVAILABLE
 from ssslm.ner import (
     Annotation,
     GildaMatcher,
@@ -76,8 +76,11 @@ class TestNER(unittest.TestCase):
         self.assertEqual("YAL021C", annotation.name)
         self.assertEqual(text, annotation.substr)
 
+    @unittest.skipUnless(PANDAS_AVAILABLE, reason="This test requires pandas")
     def test_ground_df(self) -> None:
         """Test grounding a dataframe."""
+        import pandas as pd
+
         text = "test"
         reference = NamedReference.from_curie("sgd:S000000019", name="YAL021C")
         literal_mappings = [LiteralMapping(reference=reference, text=text)]

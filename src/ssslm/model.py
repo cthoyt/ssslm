@@ -46,6 +46,9 @@ __all__ = [
 ]
 
 
+PANDAS_AVAILABLE = importlib.util.find_spec("pandas")
+
+
 class LiteralMappingTuple(NamedTuple):
     """Represents rows in a spreadsheet."""
 
@@ -358,10 +361,11 @@ Writer = Literal["pandas", "csv"]
 
 
 def _resolve_writer(writer: Writer | None = None) -> Writer:
-    if writer is None:
-        writer = "pandas"
-    if writer == "pandas" and not importlib.util.find_spec("pandas"):
-        writer = "csv"
+    if writer is None or writer == "pandas":
+        if PANDAS_AVAILABLE:
+            return "pandas"
+        else:
+            return "csv"
     return writer
 
 

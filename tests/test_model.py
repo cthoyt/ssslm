@@ -13,7 +13,7 @@ from curies import vocabulary as v
 from pydantic import model_validator
 
 import ssslm
-from ssslm.model import DEFAULT_PREDICATE, LiteralMapping, Writer
+from ssslm.model import DEFAULT_PREDICATE, PANDAS_AVAILABLE, LiteralMapping, Writer
 
 TR_1 = NamableReference.from_curie("test:1", "test")
 TR_2 = NamableReference.from_curie("test:2", "test2")
@@ -174,6 +174,11 @@ class TestModel(unittest.TestCase):
     def test_resolve_writer(self) -> None:
         """Test resolving the writer."""
 
+    def test_io_error(self) -> None:
+        """Test failure to write because of bad writer type."""
+        with self.assertRaises(ValueError), tempfile.NamedTemporaryFile() as file:
+            ssslm.write_literal_mappings([], file.name, writer="nope")  # type:ignore[arg-type]
+
     def test_io_roundtrip(self) -> None:
         """Test IO roundtrip."""
         today = datetime.date.today()
@@ -193,22 +198,23 @@ class TestModel(unittest.TestCase):
             ),
         ]
 
-        # test pandas round trip
-        df = ssslm.literal_mappings_to_df(literal_mappings)
-        reconstituted = ssslm.df_to_literal_mappings(df)
-        self.assertEqual(literal_mappings, reconstituted)
+        if PANDAS_AVAILABLE:
+            # test pandas round trip
+            df = ssslm.literal_mappings_to_df(literal_mappings)
+            reconstituted = ssslm.df_to_literal_mappings(df)
+            self.assertEqual(literal_mappings, reconstituted)
 
         for writer in typing.get_args(Writer):
+            if writer == "pandas" and not PANDAS_AVAILABLE:
+                continue
+
             # test writing/reading round trip
-            with tempfile.TemporaryDirectory() as d:
-                path = Path(d).joinpath(f"test_{writer}.tsv")
+            with self.subTest(writer=writer), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory).joinpath(f"test_{writer}.tsv")
                 ssslm.write_literal_mappings(literal_mappings, path, writer=writer)
                 reloaded_synonyms = ssslm.read_literal_mappings(path)
 
             self.assertEqual(literal_mappings, reloaded_synonyms)
-
-        with self.assertRaises(ValueError):
-            ssslm.write_literal_mappings(literal_mappings, path, writer="nope")  # type:ignore[arg-type]
 
     def test_gilda_io_roundtrip(self) -> None:
         """Test gilda roundtrip."""
