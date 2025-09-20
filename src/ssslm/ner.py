@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Union
+from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Union, cast
 
 import curies
 import pystow
@@ -254,6 +254,10 @@ class PandasTargetType(enum.Enum):
 class Matcher(ABC):
     """An interface for a grounder."""
 
+    def get_summary(self) -> str:
+        """Get a summary string."""
+        return ""
+
     @abstractmethod
     def get_matches(self, text: str, **kwargs: Any) -> list[Match]:
         """Get matches in the SSSLM format."""
@@ -489,7 +493,7 @@ class GLiNERGrounder(Grounder, WrappedMatcher):
 
 
 class GildaMatcher(Matcher):
-    """A matcher that uses gilda as a backend."""
+    """A matcher that uses :mod:`gilda` as a backend."""
 
     def __init__(self, grounder: gilda.Grounder) -> None:
         """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
@@ -548,6 +552,10 @@ class GildaMatcher(Matcher):
             ),
             score=scored_match.score,
         )
+
+    def get_summary(self) -> str:
+        """Get a summary string."""
+        return cast(str, self._grounder.summary_str())
 
     def get_matches(  # type:ignore[override]
         self,
