@@ -8,16 +8,15 @@ import gzip
 import importlib.util
 import itertools as itt
 from collections import defaultdict
-from collections.abc import Generator, Iterable, Mapping
-from contextlib import contextmanager
+from collections.abc import Iterable, Mapping
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TextIO, TypeAlias
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeAlias
 
 from curies import NamableReference, Reference, ReferenceTuple
 from curies import vocabulary as v
 from pydantic import BaseModel, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
-from pystow.utils import safe_open_writer, safe_open
+from pystow.utils import safe_open, safe_open_writer
 from tqdm import tqdm
 
 if TYPE_CHECKING:
