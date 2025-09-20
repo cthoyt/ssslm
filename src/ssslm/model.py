@@ -17,7 +17,7 @@ from curies import NamableReference, Reference, ReferenceTuple
 from curies import vocabulary as v
 from pydantic import BaseModel, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
-from pystow.utils import safe_open_writer
+from pystow.utils import safe_open_writer, safe_open
 from tqdm import tqdm
 
 if TYPE_CHECKING:
@@ -454,7 +454,7 @@ def read_literal_mappings(
     if path.suffix == ".numbers":
         return _parse_numbers(path, names=names, show_progress=show_progress)
 
-    with _safe_open(path) as file:
+    with safe_open(path) as file:
         return _from_lines(
             file,
             delimiter=delimiter,
@@ -493,16 +493,6 @@ def _prepare_gilda_path(path: str | Path) -> Path:
     if not path.suffix.endswith(".gz"):
         raise ValueError(f"gilda terms files are required to be gzipped and end with .gz: {path}")
     return path
-
-
-@contextmanager
-def _safe_open(path: Path) -> Generator[TextIO, None, None]:
-    if path.suffix == ".gz":
-        with gzip.open(path, mode="rt") as file:
-            yield file
-    else:
-        with open(path) as file:
-            yield file
 
 
 def _parse_numbers(

@@ -204,10 +204,7 @@ class TestModel(unittest.TestCase):
             reconstituted = ssslm.df_to_literal_mappings(df)
             self.assertEqual(literal_mappings, reconstituted)
 
-        for writer in typing.get_args(Writer):
-            if writer == "pandas" and not PANDAS_AVAILABLE:
-                continue
-
+        for writer in _iter_writers():
             # test writing/reading round trip
             with self.subTest(writer=writer), tempfile.TemporaryDirectory() as directory:
                 path = Path(directory).joinpath(f"test_{writer}.tsv")
@@ -268,16 +265,17 @@ class TestModel(unittest.TestCase):
             LiteralMapping(reference=TR_1, text="test", predicate=v.has_label),
         ]
         url = "https://example.com/test.tsv"
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory).joinpath("test.tsv")
-            ssslm.write_literal_mappings(expected_literal_mappings, path)
-            responses.add(
-                responses.GET,
-                url,
-                path.read_text(),
-            )
-        literal_mappings = ssslm.read_literal_mappings(url)
-        self.assertEqual(expected_literal_mappings, literal_mappings)
+        for writer in _iter_writers():
+            with self.subTest(writer=writer), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory).joinpath("test.tsv")
+                ssslm.write_literal_mappings(expected_literal_mappings, path, writer=writer)
+                responses.add(
+                    responses.GET,
+                    url,
+                    path.read_text(),
+                )
+            literal_mappings = ssslm.read_literal_mappings(url)
+            self.assertEqual(expected_literal_mappings, literal_mappings)
 
     @responses.activate
     def test_read_gz(self) -> None:
@@ -287,10 +285,7 @@ class TestModel(unittest.TestCase):
         ]
         url = "https://example.com/test.tsv.gz"
 
-        for writer in typing.get_args(Writer):
-            if writer == "pandas" and not PANDAS_AVAILABLE:
-                continue
-
+        for writer in _iter_writers():
             with self.subTest(writer=writer), tempfile.TemporaryDirectory() as directory:
                 path = Path(directory).joinpath("test.tsv.gz")
                 ssslm.write_literal_mappings(expected_literal_mappings, path, writer=writer)
@@ -330,12 +325,13 @@ class TestModel(unittest.TestCase):
             LiteralMapping(reference=NamableReference.from_curie("test:1", "A"), text="A"),
             LiteralMapping(reference=NamableReference.from_curie("test.custom:02", "B"), text="B"),
         ]
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory).joinpath("test.tsv")
-            ssslm.write_literal_mappings(expected_literal_mappings, path)
+        for writer in _iter_writers():
+            with self.subTest(writer=writer), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory).joinpath("test.tsv")
+                ssslm.write_literal_mappings(expected_literal_mappings, path, writer=writer)
 
-            with self.assertRaises(ValueError):
-                ssslm.read_literal_mappings(path, reference_cls=CustomReference)
+                with self.assertRaises(ValueError):
+                    ssslm.read_literal_mappings(path, reference_cls=CustomReference)
 
     def test_group(self) -> None:
         """Test grouping."""
@@ -356,8 +352,16 @@ class TestModel(unittest.TestCase):
         """Test appending a single literal mapping."""
         m1 = LiteralMapping(reference=TR_1, text="a")
         m2 = LiteralMapping(reference=TR_2, text="b")
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory).joinpath("test.ssslm.tsv")
-            ssslm.write_literal_mappings([m1], path)
-            ssslm.append_literal_mapping(m2, path)
-            self.assertEqual([m1, m2], ssslm.read_literal_mappings(path))
+        for writer in _iter_writers():
+            with self.subTest(writer=writer), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory).joinpath("test.ssslm.tsv")
+                ssslm.write_literal_mappings([m1], path, writer=writer)
+                ssslm.append_literal_mapping(m2, path)
+                self.assertEqual([m1, m2], ssslm.read_literal_mappings(path))
+
+
+def _iter_writers() -> typing.Iterable[Writer]:
+    for writer in typing.get_args(Writer):
+        if writer == "pandas" and not PANDAS_AVAILABLE:
+            continue
+        yield writer
