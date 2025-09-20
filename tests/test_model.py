@@ -286,23 +286,28 @@ class TestModel(unittest.TestCase):
             LiteralMapping(reference=TR_1, text="test", predicate=v.has_label),
         ]
         url = "https://example.com/test.tsv.gz"
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory).joinpath("test.tsv.gz")
-            ssslm.write_literal_mappings(expected_literal_mappings, path)
 
-            # first, test that reading from path works
-            literal_mappings = ssslm.read_literal_mappings(path)
+        for writer in typing.get_args(Writer):
+            if writer == "pandas" and not PANDAS_AVAILABLE:
+                continue
+
+            with self.subTest(writer=writer), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory).joinpath("test.tsv.gz")
+                ssslm.write_literal_mappings(expected_literal_mappings, path, writer=writer)
+
+                # first, test that reading from path works
+                literal_mappings = ssslm.read_literal_mappings(path)
+                self.assertEqual(expected_literal_mappings, literal_mappings)
+
+                # then, set up mocking URL for using requests
+                responses.add(
+                    responses.GET,
+                    url,
+                    path.read_bytes(),
+                )
+
+            literal_mappings = ssslm.read_literal_mappings(url)
             self.assertEqual(expected_literal_mappings, literal_mappings)
-
-            # then, set up mocking URL for using requests
-            responses.add(
-                responses.GET,
-                url,
-                path.read_bytes(),
-            )
-
-        literal_mappings = ssslm.read_literal_mappings(url)
-        self.assertEqual(expected_literal_mappings, literal_mappings)
 
     def test_custom_reference_class(self) -> None:
         """Test when using a custom reference class."""
