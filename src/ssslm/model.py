@@ -8,7 +8,7 @@ import gzip
 import importlib.util
 import itertools as itt
 from collections import defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeAlias
 
@@ -213,6 +213,9 @@ class LiteralMapping(BaseModel):
             taxon=self.taxon.curie if self.taxon else None,
         )
 
+    def _as_row_for_writer(self) -> Sequence[str]:
+        return tuple(x or "" for x in self._as_row())
+
     @staticmethod
     def _predicate_type_from_gilda(status: GildaStatus) -> tuple[Reference, Reference | None]:
         if status == "name":
@@ -389,7 +392,9 @@ def write_literal_mappings(
 def _write_builtin(*, path: Path, literal_mappings: Iterable[LiteralMapping]) -> None:
     with safe_open_writer(path) as writer:
         writer.writerow(HEADER)
-        writer.writerows(literal_mapping._as_row() for literal_mapping in literal_mappings)
+        writer.writerows(
+            literal_mapping._as_row_for_writer() for literal_mapping in literal_mappings
+        )
 
 
 def _write_pandas(*, path: Path, literal_mappings: Iterable[LiteralMapping]) -> None:
@@ -400,7 +405,7 @@ def _write_pandas(*, path: Path, literal_mappings: Iterable[LiteralMapping]) -> 
 def append_literal_mapping(literal_mapping: LiteralMapping, path: str | Path) -> None:
     """Append a literal mapping to an existing file."""
     with Path(path).expanduser().resolve().open("a") as file:
-        print(*literal_mapping._as_row(), sep="\t", file=file)
+        print(*literal_mapping._as_row_for_writer(), sep="\t", file=file)
 
 
 def read_literal_mappings(
