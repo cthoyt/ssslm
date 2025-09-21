@@ -1,4 +1,4 @@
-[doc("run tests")]
+[doc("run unit and integration tests")]
 test:
     just coverage erase
     uv run --group tests --all-extras --no-extra scispacy --no-extra gilda -m coverage run -p -m pytest
