@@ -181,8 +181,13 @@ def _iter_prefix_map(
         if prefix_map and prefix in prefix_map:
             pass  # given explicitly, no need to look up in bioregistry
         elif prefix not in looked_up_prefix_map:
-            import bioregistry
-
+            try:
+                import bioregistry
+            except ImportError:
+                raise ImportError(
+                    "Can not automatically look up URI prefixes when outputting SSSLM as RDF "
+                    "because the Bioregistry is not installed.\n\n\tpip install bioregistry"
+                ) from None
             resource = bioregistry.get_resource(prefix, strict=True)
             uri_prefix = resource.rdf_uri_format or resource.get_uri_prefix()
             if uri_prefix is None:
