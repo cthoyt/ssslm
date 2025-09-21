@@ -14,8 +14,6 @@ class GildaTestCase(cases.BaseNERTestCase):
         """Test Gilda NER."""
         import gilda
 
-        # turns out that LM3 is required to get this to work since the
-        # prefix index is case-sensitive
         terms = literal_mappings_to_gilda([LM_1, LM_2, LM_3])
         mock_gilda_grounder: gilda.Grounder = gilda.make_grounder(terms)
 
