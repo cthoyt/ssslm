@@ -166,6 +166,10 @@ conflicts = [
       { extra = "pandas" },
       { extra = "scispacy" },
     ],
+    [
+      { extra = "gilda-slim" },
+      { extra = "gilda" },
+    ],
 ]
 
 # See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#urls
