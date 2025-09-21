@@ -5,7 +5,7 @@ from typing import Any
 
 from curies import NamedReference
 
-from ssslm import Grounder, Match, Matcher
+from ssslm import Grounder, LiteralMapping, Match, Matcher
 from ssslm.model import GILDA_AVAILABLE
 
 __all__ = [
@@ -18,6 +18,11 @@ TEXT = "The APOE e4 mutation is correlated with risk for Alzheimer's disease."
 START = 49
 STOP = 68
 ALZ = NamedReference(prefix="MESH", identifier="D000544", name="Alzheimer Disease")
+LM = LiteralMapping(
+    reference=ALZ,
+    text="alzheimer's disease",
+)
+
 
 REQUIRES_GILDA = unittest.skipUnless(GILDA_AVAILABLE, reason="gilda is required")
 

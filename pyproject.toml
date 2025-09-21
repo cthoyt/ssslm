@@ -62,10 +62,8 @@ dependencies = [
 tests = [
     "pytest",
     "coverage[toml]",
-    "responses",
-    "pandas",
-    "httpx",
-    "bioregistry>=0.12.19",
+    "responses",  # used for mocking out requests
+    "httpx", # used in web testing
 ]
 en-core-sci-sm = [
     "en-core-sci-sm @ https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_sm-0.5.4.tar.gz ; python_version < '3.11'",
@@ -85,7 +83,6 @@ lint = [
 typing = [
     { include-group = "tests" },
     "mypy",
-    "pydantic",
     "types-requests",
 ]
 docs-lint = [
@@ -157,6 +154,11 @@ pandas = [
 rdflib = [
     "rdflib",
 ]
+ontology = [
+    # for automated lookup of URI prefixes
+    "bioregistry",
+]
+
 
 # See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#urls
 # and also https://packaging.python.org/en/latest/specifications/well-known-project-urls/
