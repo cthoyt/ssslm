@@ -19,6 +19,7 @@ from .model import (
     write_gilda_terms,
     write_literal_mappings,
 )
+from .curation import Metadata, Curator
 from .ner import (
     Annotation,
     Annotator,
@@ -40,6 +41,8 @@ __all__ = [
     "Annotator",
     "GildaGrounder",
     "Grounder",
+    "Metadata",
+    "Curator",
     "GrounderHint",
     "LiteralMapping",
     "LiteralMappingTuple",

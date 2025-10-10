@@ -9,7 +9,8 @@ from curies import NamedReference
 from curies.vocabulary import charlie
 
 from ssslm import LiteralMapping
-from ssslm.ontology import PREAMBLE, Metadata, write_owl_ttl
+from ssslm.curation import Metadata
+from ssslm.ontology import PREAMBLE, write_owl_ttl
 
 
 class TestOWL(unittest.TestCase):
