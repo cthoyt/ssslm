@@ -42,6 +42,10 @@ class MockMatcher(Matcher):
         """Get alzheimers match."""
         return [Match(reference=ALZHEIMER_REFERENCE, score=1.0)]
 
+    def not_empty(self) -> bool:
+        """Return true."""
+        return True
+
 
 class BaseNERTestCase(unittest.TestCase):
     """A test case with a shared test."""

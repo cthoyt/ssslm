@@ -252,7 +252,7 @@ class PandasTargetType(enum.Enum):
 
 
 class Matcher(ABC):
-    """An interface for a grounder."""
+    """An interface for a named entity normalizer."""
 
     @abstractmethod
     def get_matches(self, text: str, **kwargs: Any) -> list[Match]:
@@ -262,6 +262,10 @@ class Matcher(ABC):
         """Get matches in the SSSLM format."""
         matches = self.get_matches(text, **kwargs)
         return matches[0] if matches else None
+
+    @abstractmethod
+    def not_empty(self) -> bool:
+        """Return if the matcher has entries in it."""
 
     def ground_df(
         self,
@@ -312,6 +316,10 @@ class WrappedMatcher(Matcher):
     def __init__(self, *, matcher: Matcher) -> None:
         """Instantiate the matcher around another matcher."""
         self._matcher = matcher
+
+    def not_empty(self) -> bool:
+        """Return if the wrapped matcher is not empty."""
+        return self._matcher.not_empty()
 
     # docstr-coverage:excused `inherited`
     def get_matches(self, text: str, **kwargs: Any) -> list[Match]:  # noqa:D102
@@ -494,6 +502,10 @@ class GildaMatcher(Matcher):
     def __init__(self, grounder: gilda.Grounder) -> None:
         """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
         self._grounder = grounder
+
+    def not_empty(self) -> bool:
+        """Return if this matcher has lookups indexed in it."""
+        return bool(self._grounder.entries)
 
     @classmethod
     def default(cls) -> Self:

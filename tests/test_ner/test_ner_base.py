@@ -10,6 +10,7 @@ import ssslm
 from ssslm import LiteralMapping
 from ssslm.ner import (
     Annotation,
+    GildaMatcher,
     Match,
     make_grounder,
     read_annotations,
@@ -26,6 +27,12 @@ class TestNER(cases.BaseNERTestCase):
         """Test erroring on invalid impl."""
         with self.assertRaises(ValueError):
             make_grounder([], implementation="xxx")  # type:ignore[arg-type]
+
+    @REQUIRES_GILDA
+    def test_empty(self) -> None:
+        """Test an empty grounder."""
+        matcher = GildaMatcher.from_literal_mappings([])
+        self.assertFalse(matcher.not_empty())
 
     @REQUIRES_GILDA
     def test_grounder(self) -> None:
@@ -49,6 +56,7 @@ class TestNER(cases.BaseNERTestCase):
             self._assert_grounder(grounder, reference, text)
 
     def _assert_grounder(self, grounder: ssslm.Grounder, reference: Reference, text: str) -> None:
+        self.assertTrue(grounder.not_empty())
         self.assertIsNone(grounder.get_best_match("nope"))
 
         scored_matches = grounder.get_matches(text)
