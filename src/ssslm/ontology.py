@@ -6,14 +6,17 @@ from collections import ChainMap
 from collections.abc import Iterable
 from pathlib import Path
 from textwrap import dedent
-from typing import Annotated, TextIO
+from typing import TYPE_CHECKING, Annotated, TextIO
 
 from curies import NamableReference, Reference
 from pystow.utils import safe_open
 from typing_extensions import Doc
 
-from .curation import Metadata
-from .model import LiteralMapping, get_prefixes, group_literal_mappings
+from .model import get_prefixes, group_literal_mappings
+
+if TYPE_CHECKING:
+    from .curation import Metadata
+    from .model import LiteralMapping
 
 __all__ = [
     "DEFAULT_PREFIXES",

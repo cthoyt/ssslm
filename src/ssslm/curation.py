@@ -56,20 +56,22 @@ class Repository:
         """Run the CLI."""
         return self.get_cli()(*args, **kwargs)
 
-    def get_cli(self) -> click.Command:
+    def get_cli(self) -> click.Group:
         """Get a CLI."""
 
         @click.group()
         def main() -> None:
-            pass
+            """Run the CLI."""
 
         @main.command()
         def lint() -> None:
+            """Lint the SSSLM files."""
             self.lint()
 
         @main.command()
         @click.option("--path", type=Path)
         def export(path: Path | None) -> None:
+            """Export OWL."""
             self.write_owl_rdf(path=path)
 
         return main
@@ -82,7 +84,7 @@ class Repository:
         """Get negative synonyms curated in Biosynonyms."""
         return read_literal_mappings(self.negatives_path)
 
-    def lint(self):
+    def lint(self) -> None:
         """Lint the positive/negative mappings and stop words file."""
         lint_literal_mappings(self.positives_path)
         lint_literal_mappings(self.negatives_path)

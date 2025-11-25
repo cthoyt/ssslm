@@ -84,6 +84,7 @@ typing = [
     { include-group = "tests" },
     "mypy",
     "types-requests",
+    "click-types",
 ]
 docs-lint = [
     { include-group = "docs" },
