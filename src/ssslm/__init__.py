@@ -1,5 +1,6 @@
 """A simple standard for sharing literal mappings."""
 
+from .curation import Metadata, Repository
 from .io import read_skos
 from .model import (
     DEFAULT_PREDICATE,
@@ -19,7 +20,6 @@ from .model import (
     write_gilda_terms,
     write_literal_mappings,
 )
-from .curation import Metadata, Curator
 from .ner import (
     Annotation,
     Annotator,
@@ -41,13 +41,13 @@ __all__ = [
     "Annotator",
     "GildaGrounder",
     "Grounder",
-    "Metadata",
-    "Curator",
     "GrounderHint",
     "LiteralMapping",
     "LiteralMappingTuple",
     "Match",
     "Matcher",
+    "Metadata",
+    "Repository",
     "append_literal_mapping",
     "df_to_literal_mappings",
     "get_prefixes",

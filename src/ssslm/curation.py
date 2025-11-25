@@ -12,12 +12,12 @@ from curies import Reference
 from pydantic import BaseModel, Field
 
 from .model import LiteralMapping, lint_literal_mappings, read_literal_mappings
+from .ner import Grounder, make_grounder
 from .ontology import write_owl_ttl
-from .ner import make_grounder, Grounder
 
 __all__ = [
     "Metadata",
-    "Curator",
+    "Repository",
 ]
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class Metadata(BaseModel):
     comments: list[str] = Field(default_factory=list)
 
 
-class Curator:
+class Repository:
     """A configuration for a synonym curation repository."""
 
     def __init__(
