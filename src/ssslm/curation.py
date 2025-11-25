@@ -46,11 +46,11 @@ class Repository:
         owl_ttl_path: str | Path | None = None,
     ) -> None:
         """Initialize the synonym curation configuration."""
-        self.positives_path = positives_path
-        self.negatives_path = negatives_path
-        self.stop_words_path = stop_words_path
+        self.positives_path = Path(positives_path).expanduser().resolve()
+        self.negatives_path = Path(negatives_path).expanduser().resolve()
+        self.stop_words_path = Path(stop_words_path).expanduser().resolve()
         self.metadata = metadata
-        self.owl_path = owl_ttl_path
+        self.owl_path = Path(owl_ttl_path).expanduser().resolve() if owl_ttl_path else None
 
     def cli(self, *args: Any, **kwargs: Any) -> None:
         """Run the CLI."""
