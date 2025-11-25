@@ -1,5 +1,6 @@
 """A simple standard for sharing literal mappings."""
 
+from .curation import Metadata, Repository
 from .io import read_skos
 from .model import (
     DEFAULT_PREDICATE,
@@ -45,6 +46,8 @@ __all__ = [
     "LiteralMappingTuple",
     "Match",
     "Matcher",
+    "Metadata",
+    "Repository",
     "append_literal_mapping",
     "df_to_literal_mappings",
     "get_prefixes",

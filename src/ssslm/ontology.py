@@ -6,56 +6,23 @@ from collections import ChainMap
 from collections.abc import Iterable
 from pathlib import Path
 from textwrap import dedent
-from typing import Annotated, TextIO
+from typing import TYPE_CHECKING, Annotated, TextIO
 
 from curies import NamableReference, Reference
-from pydantic import BaseModel, Field
 from pystow.utils import safe_open
 from typing_extensions import Doc
 
-from .model import LiteralMapping, get_prefixes, group_literal_mappings
+from .model import get_prefixes, group_literal_mappings
+
+if TYPE_CHECKING:
+    from .curation import Metadata
+    from .model import LiteralMapping
 
 __all__ = [
     "DEFAULT_PREFIXES",
-    "Metadata",
+    "metadata_to_rdf",
     "write_owl_ttl",
 ]
-
-
-class Metadata(BaseModel):
-    """Metadata for the ontology."""
-
-    uri: str
-    title: str | None = None
-    description: str | None = None
-    license: Reference | str | None = None
-    comments: list[str] = Field(default_factory=list)
-
-    def _rdf_str(self) -> str:
-        first = f"<{self.uri}> a owl:Ontology"
-        lines: list[str] = []
-        if self.title:
-            lines.append(f'dcterms:title "{self.title}"^^xsd:string')
-        if self.description:
-            lines.append(f'dcterms:description "{self.description}"^^xsd:string')
-        if isinstance(self.license, Reference):
-            lines.append(f"dcterms:license {self.license.curie}")
-        elif isinstance(self.license, str):
-            if self.license.startswith("http"):
-                lines.append(f"dcterms:license <{self.license}>")
-            else:
-                lines.append(f'dcterms:license "{self.license}"^^xsd:string')
-        for comment in self.comments:
-            lines.append(f'rdfs:comment "{comment}"^^xsd:string')
-        if not lines:
-            return first + " ."
-        return (
-            first
-            + " ;\n"
-            + "".join(f"    {line} ;\n" for line in lines[:-1])
-            + f"    {lines[-1]} ."
-        )
-
 
 PREAMBLE = """\
 rdfs:label   a owl:AnnotationProperty; rdfs:label "label"^^xsd:string .
@@ -137,6 +104,28 @@ OMO:0003011 a owl:AnnotationProperty;
 OMO:0003012 a owl:AnnotationProperty;
     rdfs:label "acronym"^^xsd:string .
 """
+
+
+def metadata_to_rdf(metadata: Metadata) -> str:
+    """Convert metadat to RDF."""
+    first = f"<{metadata.uri}> a owl:Ontology"
+    lines: list[str] = []
+    if metadata.title:
+        lines.append(f'dcterms:title "{metadata.title}"^^xsd:string')
+    if metadata.description:
+        lines.append(f'dcterms:description "{metadata.description}"^^xsd:string')
+    if isinstance(metadata.license, Reference):
+        lines.append(f"dcterms:license {metadata.license.curie}")
+    elif isinstance(metadata.license, str):
+        if metadata.license.startswith("http"):
+            lines.append(f"dcterms:license <{metadata.license}>")
+        else:
+            lines.append(f'dcterms:license "{metadata.license}"^^xsd:string')
+    for comment in metadata.comments:
+        lines.append(f'rdfs:comment "{comment}"^^xsd:string')
+    if not lines:
+        return first + " ."
+    return first + " ;\n" + "".join(f"    {line} ;\n" for line in lines[:-1]) + f"    {lines[-1]} ."
 
 
 def _text_for_turtle(literal_mapping: LiteralMapping) -> str:
@@ -249,15 +238,15 @@ def write_owl_ttl(  # noqa:C901
     """Write literal mappings as OWL, encoded in turtle."""
     dd = group_literal_mappings(literal_mappings)
 
-    # accmulate people
+    # accumulate people
     people: set[Reference] = set()
 
     with safe_open(path, operation="write") as file:
         if prefix_definitions:
             _write_prefix_map(get_prefixes(dd), file=file, prefix_map=prefix_map)
 
-        if metadata:
-            file.write(f"\n{metadata._rdf_str()}\n")
+        if metadata is not None:
+            file.write(f"\n{metadata_to_rdf(metadata)}\n")
 
         file.write(f"\n{PREAMBLE}\n")
 
