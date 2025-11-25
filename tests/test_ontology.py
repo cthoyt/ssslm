@@ -10,7 +10,7 @@ from curies.vocabulary import charlie
 
 from ssslm import LiteralMapping
 from ssslm.curation import Metadata
-from ssslm.ontology import PREAMBLE, write_owl_ttl
+from ssslm.ontology import PREAMBLE, metadata_to_rdf, write_owl_ttl
 
 
 class TestOWL(unittest.TestCase):
@@ -19,13 +19,13 @@ class TestOWL(unittest.TestCase):
     def test_metadata(self) -> None:
         """Test metadata object."""
         m = Metadata(uri="https://example.org/test.owl")
-        self.assertEqual("<https://example.org/test.owl> a owl:Ontology .", m._rdf_str())
+        self.assertEqual("<https://example.org/test.owl> a owl:Ontology .", metadata_to_rdf(m))
 
         m = Metadata(uri="https://example.org/test.owl", title="Test")
         self.assertEqual(
             "<https://example.org/test.owl> a owl:Ontology ;"
             '\n    dcterms:title "Test"^^xsd:string .',
-            m._rdf_str(),
+            metadata_to_rdf(m),
         )
 
         m = Metadata(uri="https://example.org/test.owl", title="Test", description="Description")
@@ -33,7 +33,7 @@ class TestOWL(unittest.TestCase):
             "<https://example.org/test.owl> a owl:Ontology ;"
             '\n    dcterms:title "Test"^^xsd:string ;'
             '\n    dcterms:description "Description"^^xsd:string .',
-            m._rdf_str(),
+            metadata_to_rdf(m),
         )
 
     def test_write_owl_rdf(self) -> None:

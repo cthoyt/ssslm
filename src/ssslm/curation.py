@@ -54,7 +54,7 @@ class Repository:
 
     def cli(self, *args: Any, **kwargs: Any) -> None:
         """Run the CLI."""
-        return self.get_cli()(*args, **kwargs)
+        self.get_cli()(*args, **kwargs)
 
     def get_cli(self) -> click.Group:
         """Get a CLI."""
@@ -126,7 +126,9 @@ class Repository:
         else:
             logger.warning("internal path and explicit path give, using explicit path")
 
-        write_owl_ttl(self.get_positive_synonyms(), path, metadata=self.metadata, **kwargs)
+        write_owl_ttl(
+            self.get_positive_synonyms(), cast(str | Path, path), metadata=self.metadata, **kwargs
+        )
 
     def make_grounder(self, **kwargs: Any) -> Grounder:
         """Get a grounder from all positive synonyms."""

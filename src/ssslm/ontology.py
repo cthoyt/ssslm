@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "DEFAULT_PREFIXES",
+    "metadata_to_rdf",
     "write_owl_ttl",
 ]
 
@@ -105,7 +106,8 @@ OMO:0003012 a owl:AnnotationProperty;
 """
 
 
-def _metadata_to_rdf(metadata: Metadata) -> str:
+def metadata_to_rdf(metadata: Metadata) -> str:
+    """Convert metadat to RDF."""
     first = f"<{metadata.uri}> a owl:Ontology"
     lines: list[str] = []
     if metadata.title:
@@ -244,7 +246,7 @@ def write_owl_ttl(  # noqa:C901
             _write_prefix_map(get_prefixes(dd), file=file, prefix_map=prefix_map)
 
         if metadata is not None:
-            file.write(f"\n{_metadata_to_rdf(metadata)}\n")
+            file.write(f"\n{metadata_to_rdf(metadata)}\n")
 
         file.write(f"\n{PREAMBLE}\n")
 
