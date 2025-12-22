@@ -172,6 +172,9 @@ class Annotation(BaseModel):
     end: int
     match: Match
 
+    document: NamableReference | None = None
+    document_part: NamableReference | None = None
+
     @property
     def reference(self) -> NamableReference:
         """Get the scored match's reference."""
