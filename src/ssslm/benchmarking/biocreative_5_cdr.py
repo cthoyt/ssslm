@@ -5,10 +5,11 @@ from __future__ import annotations
 import itertools as itt
 
 import bioc.pubtator
+import click
 import pystow
 from bioc.pubtator import PubTator
-import click
 from more_click import verbose_option
+
 from ssslm.io.bioc_w import evaluate_pubtators
 
 BC5_CDR_URL = "https://github.com/JHnlp/BioCreative-V-CDR-Corpus/raw/refs/heads/master/CDR_Data.zip"
@@ -92,14 +93,8 @@ CURIES = {
 @verbose_option
 def main() -> None:
     """Run the benchmark."""
-    xx = {
-        func.__name__.removeprefix("load_"): func()
-        for func in LUIDS
-    }
-    yy = {
-        func.__name__.removeprefix("load_"): func()
-        for func in CURIES
-    }
+    xx = {func.__name__.removeprefix("load_"): func() for func in LUIDS}
+    yy = {func.__name__.removeprefix("load_"): func() for func in CURIES}
 
     import pandas as pd
     import pyobo

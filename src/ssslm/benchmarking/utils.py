@@ -33,7 +33,12 @@ class Document(BaseModel):
 
 
 def evaluate(
-    documents: Iterable[Document], *, grounder: Grounder, directory: str | Path, output_figures: bool = False, **kwargs: Any
+    documents: Iterable[Document],
+    *,
+    grounder: Grounder,
+    directory: str | Path,
+    output_figures: bool = False,
+    **kwargs: Any,
 ) -> pd.DataFrame:
     """Evaluate a set of documents."""
     directory = Path(directory).expanduser().resolve()
@@ -77,6 +82,7 @@ class Evaluation(TypedDict):
     entities_recall: float
     entities_precision: float
     entities_f1: float
+
 
 #: A small number to avoid division by zero issues
 EPSILON = 1e-9
