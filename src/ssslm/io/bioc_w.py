@@ -7,6 +7,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import bioc.pubtator
 import pandas as pd
 from bioc.pubtator import PubTator
 from curies import NamableReference, NamedReference
@@ -18,6 +19,16 @@ from ssslm.ner import Annotation, Match
 
 if TYPE_CHECKING:
     from ssslm import Grounder
+
+
+def read_documents(
+    path: str | Path,
+    prefix: str | None = None,
+    confidence: float | None = None,
+) -> Iterable[Document]:
+    """Read documents."""
+    for pubtator in tqdm(read_pubtators(path), unit_scale=True):
+        yield from pubtator_to_documents(pubtator, prefix=prefix, confidence=confidence)
 
 
 def pubtator_to_documents(
@@ -80,6 +91,14 @@ def pubtator_to_documents(
     return [d1, d2]
 
 
+def read_pubtators(path: str | Path) -> Iterable[bioc.pubtator.PubTator]:
+    """Evaluate a BioC file against a grounder."""
+    import bioc.pubtator
+
+    with Path(path).expanduser().open() as file:
+        yield from bioc.pubtator.iterparse(file)
+
+
 def evaluate_path(
     path: str | Path,
     *,
@@ -87,18 +106,15 @@ def evaluate_path(
     grounder: Grounder | None = None,
     confidence: float | None = None,
     directory: str | Path,
-) -> None:
+) -> pd.DataFrame:
     """Evaluate a BioC file against a grounder."""
-    import bioc.pubtator
-
-    with Path(path).expanduser().open() as file:
-        evaluate_pubtators(
-            bioc.pubtator.iterparse(file),
-            grounder=grounder,
-            prefix=prefix,
-            confidence=confidence,
-            directory=directory,
-        )
+    return evaluate_pubtators(
+        read_pubtators(path),
+        grounder=grounder,
+        prefix=prefix,
+        confidence=confidence,
+        directory=directory,
+    )
 
 
 def evaluate_pubtators(

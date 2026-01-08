@@ -7,7 +7,8 @@ from pathlib import Path
 from curies import NamableReference, NamedReference
 
 from ssslm import Annotation, Match
-from ssslm.io.bioc import Document, parse_pubtator
+from ssslm.io.bioc_w import Document, read_documents
+from ssslm.benchmarking.utils import Document
 
 test = """\
 26094|t|Antihypertensive drugs and depression: a reappraisal.
@@ -48,7 +49,7 @@ class BioCTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir).joinpath("test.txt")
             path.write_text(test)
-            documents = list(parse_pubtator(path, prefix="mesh"))
+            documents = list(read_documents(path, prefix="mesh"))
 
         self.assertEqual(4, len(documents))
         actual_d1, _actual_d2 = documents

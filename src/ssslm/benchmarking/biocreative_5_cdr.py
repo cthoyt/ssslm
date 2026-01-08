@@ -1,4 +1,11 @@
-"""Evaluate the BioCreative V - Chemical Drug Relation (CDR) task."""
+"""Evaluate the BioCreative V - Chemical Drug Relation (CDR) task.
+
+_[dnorm]: Leaman R, Dogan RI, Lu Z. DNorm: disease name normalization with pairwise
+    learning to rank, Bioinformatics 29(22):2909-17, 2013
+
+_[tmchem]: Leaman R, Wei CH, Lu Z. tmChem: a high performance approach for chemical
+    named entity recognition and normalization. J Cheminform, 7:S3, 2015
+"""
 
 from __future__ import annotations
 
@@ -18,27 +25,32 @@ BC5_CDR_EVALUATION_URL = "https://github.com/JHnlp/BioCreative-V-CDR-Corpus/raw/
 MODULE = pystow.module("bioc")
 
 
-def load_bc5_cdr_development() -> list[PubTator]:  # noqa:D103
+def load_bc5_cdr_development() -> list[PubTator]:
+    """Get the chemical-drug relations development corpus."""
     # annotated with MeSH LUIDs
     return _load_bc5("CDR.Corpus.v010516/CDR_DevelopmentSet.PubTator.txt")
 
 
-def load_bc5_cdr_test() -> list[PubTator]:  # noqa:D103
+def load_bc5_cdr_test() -> list[PubTator]:
+    """Get the chemical-drug relations test corpus."""
     # annotated with MeSH LUIDs
     return _load_bc5("CDR.Corpus.v010516/CDR_TestSet.PubTator.txt")
 
 
-def load_bc5_cdr_training() -> list[PubTator]:  # noqa:D103
+def load_bc5_cdr_training() -> list[PubTator]:
+    """Get the chemical-drug relations training corpus."""
     # annotated with MeSH LUIDs
     return _load_bc5("CDR.Corpus.v010516/CDR_TrainingSet.PubTator.txt")
 
 
 def load_bc5_dorm_test() -> list[PubTator]:  # noqa:D103
+    """Get the chemical-drug relations annotated by _[dnorm]."""
     # this one is annotated with CURIEs from MESH and CHEBI
     return _load_bc5("DNorm.TestSet/TestSet.DNorm.PubTator.txt")
 
 
 def load_bc5_tmchem_test() -> list[PubTator]:  # noqa:D103
+    """Get the chemical-drug relations annotated by _[tmchem]."""
     # this one is annotated with CURIEs from MESH and CHEBI
     return _load_bc5("tmChem.TestSet/TestSet.tmChem.PubTator.txt")
 
