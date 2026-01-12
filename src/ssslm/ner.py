@@ -164,16 +164,12 @@ class Match(BaseModel):
         return self.reference.name
 
 
-class Annotation(BaseModel):
-    """Data about an annotation."""
+class PositionalMatch(BaseModel):
+    """A match with a start and end position."""
 
-    text: str
     start: int
     end: int
     match: Match
-
-    document: NamableReference | None = None
-    document_part: NamableReference | None = None
 
     @property
     def reference(self) -> NamableReference:
@@ -204,6 +200,14 @@ class Annotation(BaseModel):
     def score(self) -> float:
         """Get the match's score."""
         return self.match.score
+
+
+class Annotation(PositionalMatch):
+    """Data about an annotation."""
+
+    text: str
+    document: NamableReference | None = None
+    document_part: NamableReference | None = None
 
     @property
     def substr(self) -> str:

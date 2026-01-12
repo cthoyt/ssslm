@@ -43,13 +43,13 @@ def load_bc5_cdr_training() -> list[PubTator]:
     return _load_bc5("CDR.Corpus.v010516/CDR_TrainingSet.PubTator.txt")
 
 
-def load_bc5_dorm_test() -> list[PubTator]:  # noqa:D103
+def load_bc5_dorm_test() -> list[PubTator]:
     """Get the chemical-drug relations annotated by _[dnorm]."""
     # this one is annotated with CURIEs from MESH and CHEBI
     return _load_bc5("DNorm.TestSet/TestSet.DNorm.PubTator.txt")
 
 
-def load_bc5_tmchem_test() -> list[PubTator]:  # noqa:D103
+def load_bc5_tmchem_test() -> list[PubTator]:
     """Get the chemical-drug relations annotated by _[tmchem]."""
     # this one is annotated with CURIEs from MESH and CHEBI
     return _load_bc5("tmChem.TestSet/TestSet.tmChem.PubTator.txt")

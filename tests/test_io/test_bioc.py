@@ -8,7 +8,6 @@ from curies import NamableReference, NamedReference
 
 from ssslm import Annotation, Match
 from ssslm.io.bioc_w import Document, read_documents
-from ssslm.benchmarking.utils import Document
 
 test = """\
 26094|t|Antihypertensive drugs and depression: a reappraisal.
