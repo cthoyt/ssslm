@@ -61,6 +61,7 @@ def make_grounder(
     grounder_hint: GrounderHint,
     *,
     implementation: Implementation | None = None,
+    progress: bool = False,
     **kwargs: Any,
 ) -> Grounder:
     """Get a grounder from literal mappings.
@@ -72,6 +73,7 @@ def make_grounder(
         2. An iterable of literal mappings
         3. A pre-instantiated grounder or gilda grounder
     :param implementation: If literal mappings are passed, what kind of grounder to use
+    :param progress: If True, show a progress bar when loading literal mappings
     :param kwargs: If literal mappings are passed, keyword arguments passed to the
         construction of the grounder
 
@@ -121,7 +123,7 @@ def make_grounder(
     if _is_gilda_grounder(grounder_hint):
         return GildaGrounder(grounder_hint)
     if isinstance(grounder_hint, str | Path):
-        grounder_hint = read_literal_mappings(grounder_hint)
+        grounder_hint = read_literal_mappings(grounder_hint, show_progress=progress)
 
     if implementation is None or implementation == "gilda":
         return GildaGrounder.from_literal_mappings(grounder_hint, **kwargs)
