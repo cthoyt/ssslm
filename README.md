@@ -28,8 +28,8 @@
     <a href="https://github.com/cthoyt/ssslm/blob/main/.github/CODE_OF_CONDUCT.md">
         <img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Contributor Covenant"/></a>
     <!-- uncomment if you archive on zenodo
-    <a href="https://zenodo.org/badge/latestdoi/XXXXXX">
-        <img src="https://zenodo.org/badge/XXXXXX.svg" alt="DOI"></a>
+    <a href="https://doi.org/10.5281/zenodo.XXXXXX">
+        <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXX.svg" alt="DOI"></a>
     -->
 </p>
 
@@ -229,6 +229,22 @@ Alternatively, install using pip:
 $ python3 -m pip install -e .
 ```
 
+### Pre-commit
+
+You can optionally use [pre-commit](https://pre-commit.com) to automate running
+key code quality checks on each commit. Enable it with:
+
+```console
+$ uvx pre-commit install
+```
+
+Or using `pip`:
+
+```console
+$ pip install pre-commit
+$ pre-commit install
+```
+
 ### 🥼 Testing
 
 After cloning the repository and installing `tox` with
@@ -355,9 +371,9 @@ $ tox -e finish
 This script does the following:
 
 1. Uses [bump-my-version](https://github.com/callowayproject/bump-my-version) to
-   switch the version number in the `pyproject.toml`, `CITATION.cff`,
-   `src/ssslm/version.py`, and [`docs/source/conf.py`](docs/source/conf.py) to
-   not have the `-dev` suffix
+   switch the version number in the `pyproject.toml`, `src/ssslm/version.py`,
+   and [`docs/source/conf.py`](docs/source/conf.py) to not have the `-dev`
+   suffix
 2. Packages the code in both a tar archive and a wheel using
    [`uv build`](https://docs.astral.sh/uv/guides/publish/#building-your-package)
 3. Uploads to PyPI using
