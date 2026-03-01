@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Union
+from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Union, cast
 
 import curies
 import pystow
@@ -124,7 +124,7 @@ def make_grounder(
         grounder_hint = read_literal_mappings(grounder_hint)
 
     if implementation is None or implementation == "gilda":
-        return GildaGrounder.from_literal_mappings(grounder_hint, **kwargs)
+        return GildaGrounder.from_literal_mappings(cast(Iterable[LiteralMapping], grounder_hint), **kwargs)
     raise ValueError(f"Unsupported implementation: {implementation}")
 
 
@@ -205,7 +205,7 @@ class Annotation(BaseModel):
     @property
     def substr(self) -> str:
         """Get the substring that was matched."""
-        return self.text[self.start : self.end]
+        return self.text[self.start: self.end]
 
 
 def read_annotations(path: str | Path | TextIO) -> list[Annotation]:
@@ -512,7 +512,8 @@ class GildaMatcher(Matcher):
         """Get the default/builtin grounder."""
         import gilda.api
 
-        return cls(grounder=gilda.api.grounder.get_grounder())
+        grounder = gilda.api.grounder.get_grounder()  # type:ignore[no-untyped-call]
+        return cls(grounder=grounder)
 
     @classmethod
     def from_literal_mappings(
@@ -545,7 +546,7 @@ class GildaMatcher(Matcher):
 
             # suppress logging counting of terms
             logging.getLogger("gilda.term").setLevel(logging.WARNING)
-            terms = filter_out_duplicates(terms)
+            terms = filter_out_duplicates(terms)  # type:ignore[no-untyped-call]
         grounder = grounder_cls(terms, namespace_priority=prefix_priority)
         return cls(grounder)
 
@@ -571,7 +572,7 @@ class GildaMatcher(Matcher):
         """Get matches in the SSSLM format using :meth:`gilda.Grounder.ground`."""
         return [
             self._convert_gilda_match(scored_match)
-            for scored_match in self._grounder.ground(
+            for scored_match in self._grounder.ground(# type:ignore[no-untyped-call]
                 text, context=context, organisms=organisms, namespaces=namespaces
             )
         ]
