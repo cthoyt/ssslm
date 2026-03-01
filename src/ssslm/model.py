@@ -555,7 +555,11 @@ def _from_dicts(
         disable=not show_progress,
     )
     for i, record in enumerate(it, start=2):
-        record = {k: v for k, v in record.items() if k and v and k.strip() and v.strip()}
+        record = {
+            k: v
+            for k, v in record.items()
+            if k and v and isinstance(v, str) and k.strip() and v.strip()
+        }
         if record:
             try:
                 literal_mapping = LiteralMapping.from_row(
