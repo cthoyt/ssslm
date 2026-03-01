@@ -123,7 +123,7 @@ class TestGildaIO(unittest.TestCase):
         """Test getting gilda terms."""
         import gilda
 
-        term = gilda.Term( # type:ignore[no-untyped-call]
+        term = gilda.Term(  # type:ignore[no-untyped-call]
             "text",
             text="text",
             db="test",

@@ -124,7 +124,9 @@ def make_grounder(
         grounder_hint = read_literal_mappings(grounder_hint)
 
     if implementation is None or implementation == "gilda":
-        return GildaGrounder.from_literal_mappings(cast(Iterable[LiteralMapping], grounder_hint), **kwargs)
+        return GildaGrounder.from_literal_mappings(
+            cast(Iterable[LiteralMapping], grounder_hint), **kwargs
+        )
     raise ValueError(f"Unsupported implementation: {implementation}")
 
 
@@ -205,7 +207,7 @@ class Annotation(BaseModel):
     @property
     def substr(self) -> str:
         """Get the substring that was matched."""
-        return self.text[self.start: self.end]
+        return self.text[self.start : self.end]
 
 
 def read_annotations(path: str | Path | TextIO) -> list[Annotation]:
@@ -572,7 +574,7 @@ class GildaMatcher(Matcher):
         """Get matches in the SSSLM format using :meth:`gilda.Grounder.ground`."""
         return [
             self._convert_gilda_match(scored_match)
-            for scored_match in self._grounder.ground(# type:ignore[no-untyped-call]
+            for scored_match in self._grounder.ground(  # type:ignore[no-untyped-call]
                 text, context=context, organisms=organisms, namespaces=namespaces
             )
         ]

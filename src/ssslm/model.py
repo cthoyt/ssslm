@@ -91,14 +91,14 @@ class LiteralMapping(BaseModel):
     predicate: Reference = Field(
         default=DEFAULT_PREDICATE,
         description="The predicate that connects the term (as subject) "
-                    "to the textual synonym (as object)",
+        "to the textual synonym (as object)",
         examples=PREDICATES,
     )
     text: str = Field(..., description="The object of the literal mapping")
     language: LanguageAlpha2 | None = Field(
         None,
         description="The language of the synonym. If not given, typically "
-                    "assumed to be american english.",
+        "assumed to be american english.",
     )
 
     type: Reference | None = Field(
@@ -126,7 +126,7 @@ class LiteralMapping(BaseModel):
     taxon: Reference | None = Field(
         None,
         description="If taxon-specific, annotate it here. "
-                    "Only use `NCBITaxon` or `ncbitaxon` as the prefix.",
+        "Only use `NCBITaxon` or `ncbitaxon` as the prefix.",
     )
 
     def __lt__(self, other: LiteralMapping) -> bool:
