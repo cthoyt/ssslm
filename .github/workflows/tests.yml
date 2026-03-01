@@ -36,7 +36,7 @@ jobs:
           cache-dependency-glob: "pyproject.toml"
       - name: "Run command"
         run: |
-          uvx -p ${{ matrix.python-version }} --from rust-just just -e ${{ matrix.tox-command }}
+          uvx -p ${{ matrix.python-version }} --from rust-just just ${{ matrix.tox-command }}
 
   docs:
     name: Documentation
@@ -60,13 +60,13 @@ jobs:
         run: |
           sudo apt-get install graphviz
       - name: Lint documentation
-        run: uvx -p ${{ matrix.python-version }} --from rust-just just -e docs-lint
+        run: uvx -p ${{ matrix.python-version }} --from rust-just just docs-lint
       - name: Check docstring coverage
-        run: uvx -p ${{ matrix.python-version }} --from rust-just just -e docstr-coverage
+        run: uvx -p ${{ matrix.python-version }} --from rust-just just docstr-coverage
       - name: Check documentation build with Sphinx
-        run: uvx -p ${{ matrix.python-version }} --from rust-just just -e docs-test
+        run: uvx -p ${{ matrix.python-version }} --from rust-just just docs-test
       - name: Lint markdown
-        run: uvx -p ${{ matrix.python-version }} --from rust-just just -e lint-markdown
+        run: uvx -p ${{ matrix.python-version }} --from rust-just just lint-markdown
 
   tests:
     name: Tests
@@ -89,7 +89,7 @@ jobs:
           uvx -p ${{ matrix.python-version }} --from rust-just just test
       - name: Run doctests
         run:
-          uvx -p ${{ matrix.python-version }} --from rust-just just -e doctests
+          uvx -p ${{ matrix.python-version }} --from rust-just just doctests
       - name: Upload coverage report to codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         if: success()
