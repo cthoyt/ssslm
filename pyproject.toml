@@ -151,7 +151,7 @@ web = [
     "uvicorn",
 ]
 pandas = [
-    "pandas",
+    "pandas<3.0",
     "numpy>=2.0.0",
 ]
 rdflib = [
