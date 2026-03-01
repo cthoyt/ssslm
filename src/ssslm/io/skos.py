@@ -133,7 +133,8 @@ def _get_names(graph: rdflib.Graph, uri_prefix: str) -> dict[str, str]:
     # Step 1, get the best possible label. Use a hierarchy of label types and languages
     names_dd: defaultdict[str, list[_LabelTuple]] = defaultdict(list)
     results = cast(
-        Iterable[tuple[rdflib.URIRef, rdflib.URIRef, rdflib.Literal]], graph.query(BEST_NAME_QUERY)
+        Iterable["tuple[rdflib.URIRef, rdflib.URIRef, rdflib.Literal]"],
+        graph.query(BEST_NAME_QUERY),
     )
     for uri, predicate, name in results:
         if not str(uri).startswith(uri_prefix) or not name._language:
@@ -203,7 +204,7 @@ def read_skos(
     predicate_uri_to_reference = _get_predicate_to_ref()
 
     results = cast(
-        Iterable[tuple[rdflib.URIRef, rdflib.URIRef, rdflib.Literal]], graph.query(LM_QUERY)
+        Iterable["tuple[rdflib.URIRef, rdflib.URIRef, rdflib.Literal]"], graph.query(LM_QUERY)
     )
     rv = [
         LiteralMapping(
