@@ -2,7 +2,7 @@
 test:
     # See the [dependency-groups] entry in pyproject.toml for "tests"
     just coverage erase
-    uv run --group tests --all-extras --no-extra scispacy --no-extra gilda  -m coverage run -p -m pytest
+    uv run --group tests --all-extras --no-extra scispacy --no-extra gliner --no-extra gilda  -m coverage run -p -m pytest
     just coverage combine
     just coverage report
     just coverage html
@@ -21,7 +21,7 @@ coverage-report:
 # Note that the package name is required for discovery
 [doc("test that documentation examples run properly")]
 doctests:
-    uv run --group doctests --all-extras --no-extra scispacy --no-extra gilda xdoctest -m src/ssslm
+    uv run --group doctests --all-extras --no-extra scispacy --no-extra gliner --no-extra gilda xdoctest -m src/ssslm
 
 [doc("test that notebooks can be run to completion")]
 treon:
@@ -60,11 +60,11 @@ pyroma:
 
 [doc("run static type checking with mypy")]
 mypy:
-    uv run --group typing --all-extras --no-extra scispacy --no-extra gilda mypy --ignore-missing-imports --strict src/ tests/
+    uv run --group typing --all-extras --no-extra scispacy --no-extra gliner --no-extra gilda mypy --ignore-missing-imports --strict src/ tests/
 
 [doc("run static type checking with ty")]
 ty:
-    uv run --group typing --all-extras --no-extra scispacy --no-extra gilda ty check src/ tests/
+    uv run --group typing --all-extras --no-extra scispacy --no-extra gliner --no-extra gilda ty check src/ tests/
 
 [doc("run the doc8 tool to check the style of the RST files in the project docs")]
 docs-lint:
@@ -76,7 +76,7 @@ docstr-coverage:
 
 [doc("build the documentation locally")]
 docs:
-    uv run --group docs --all-extras --no-extra scispacy --no-extra gilda -m sphinx -b html -d docs/build/doctrees docs/source docs/build/html
+    uv run --group docs --all-extras --no-extra scispacy --no-extra gliner --no-extra gilda -m sphinx -b html -d docs/build/doctrees docs/source docs/build/html
 
 [doc("test building the documentation locally. warnings are considered as errors via -W")]
 docs-test:
@@ -84,7 +84,7 @@ docs-test:
     set -euo pipefail
     tmpdir=$(mktemp -d)
     cp -r docs/source "$tmpdir/source"
-    uv run --group docs --all-extras --no-extra scispacy --no-extra gilda -m sphinx -W -b html -d "$tmpdir/build/doctrees" "$tmpdir/source" "$tmpdir/build/html"
+    uv run --group docs --all-extras --no-extra scispacy --no-extra gliner --no-extra gilda -m sphinx -W -b html -d "$tmpdir/build/doctrees" "$tmpdir/source" "$tmpdir/build/html"
     rm -rf "$tmpdir"
 
 ####################
