@@ -184,7 +184,6 @@ def read_skos(
 
         url = "https://raw.githubusercontent.com/dini-ag-kim/schulfaecher/refs/heads/main/schulfaecher.ttl"
         literal_mappings = ssslm.read_skos(url)
-
     """
     graph = _ensure_graph(graph)
     curie_prefix, uri_prefix = _ensure_prefixes(
