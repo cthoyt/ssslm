@@ -247,21 +247,31 @@ class Annotation(BaseModel, Generic[R]):
         return self.text[self.start : self.end]
 
 
-def read_annotations(path: str | Path | TextIO) -> list[Annotation]:
+def read_annotations(
+    path: str | Path | TextIO, *, example_reference: R | None = None
+) -> list[Annotation[R]]:
     """Read annotations from a TSV file."""
+    return list(_iter_annotations(path, example_reference=example_reference))
+
+
+def _iter_annotations(
+    path: str | Path | TextIO, *, example_reference: R | None = None
+) -> Iterable[Annotation[R]]:
+    """Read annotations from a TSV file."""
+    if example_reference is None:
+        reference_cls = NamableReference
+    else:
+        reference_cls = example_reference.__class__
     with safe_open_dict_reader(path) as reader:
-        return [Annotation.model_validate(_reorganize(record)) for record in reader]
-
-
-def _reorganize(
-    d: dict[str, Any], reference_cls: type[NamableReference] = NamableReference
-) -> dict[str, Any]:
-    d["match"] = Match(
-        reference=reference_cls.from_curie(d.pop("curie"), name=d.pop("name") or None),
-        score=d.pop("score"),
-    )
-    d = {k: v for k, v in d.items() if k and v}
-    return d
+        for record in reader:
+            record["match"] = Match(
+                reference=reference_cls.from_curie(
+                    record.pop("curie"), name=record.pop("name") or None
+                ),
+                score=record.pop("score"),
+            )
+            record = {k: v for k, v in record.items() if k and v}
+            yield Annotation.model_validate(record)
 
 
 def write_annotations(annotations: Iterable[Annotation], path: str | Path | TextIO) -> None:
