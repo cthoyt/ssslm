@@ -348,7 +348,7 @@ def _match_helper(
 ) -> str | None | Match | NamableReference:
     if not isinstance(text, str):  # this catches pd.nan's
         return None
-    match = matcher.get_best_match(text, **kwargs)
+    match = matcher.get_best_match(text, strict=False, **kwargs)
     if not match:
         return None
     if isinstance(target_type, str):
