@@ -581,13 +581,15 @@ class GLiNERGrounder(Grounder[R], WrappedMatcher[R], Generic[R]):
 class GildaMatcher(Matcher[R], Generic[R]):
     """A matcher that uses gilda as a backend."""
 
-    def __init__(self, grounder: gilda.Grounder, *, example_reference: R | None = None) -> None:
+    _reference_cls: type[R]
+
+    def __init__(self, grounder: gilda.Grounder, *, reference_cls: type[R] | None = None) -> None:
         """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
         self._grounder = grounder
-        if example_reference is None:
-            self._reference_cls = NamableReference
+        if reference_cls is None:
+            self._reference_cls = cast(type[R], NamableReference)
         else:
-            self._reference_cls = example_reference.__class__
+            self._reference_cls = reference_cls.__class__  # type:ignore
 
     def not_empty(self) -> bool:
         """Return if this matcher has lookups indexed in it."""
@@ -630,10 +632,10 @@ class GildaMatcher(Matcher[R], Generic[R]):
 
         peekable_literal_mappings = peekable(literal_mappings)
         try:
-            example_reference: R | None = peekable_literal_mappings.peek().reference
+            reference_cls = peekable_literal_mappings.peek().reference.__class__
         except StopIteration:
             terms = []
-            example_reference = None
+            reference_cls = None
         else:
             # this should be able to infer a peekable is an iterable... ignore for now
             terms = literal_mappings_to_gilda(peekable_literal_mappings, on_error=on_error)
@@ -644,7 +646,7 @@ class GildaMatcher(Matcher[R], Generic[R]):
             logging.getLogger("gilda.term").setLevel(logging.WARNING)
             terms = filter_out_duplicates(terms)  # type:ignore[no-untyped-call]
         grounder = grounder_cls(terms, namespace_priority=prefix_priority)
-        return cls(grounder, example_reference=example_reference)
+        return cls(grounder, reference_cls=reference_cls)
 
     def _convert_gilda_match(self, scored_match: gilda.ScoredMatch) -> Match[R]:
         """Wrap a Gilda scored match."""
@@ -676,9 +678,9 @@ class GildaMatcher(Matcher[R], Generic[R]):
 class GildaGrounder(Grounder[R], GildaMatcher[R], Generic[R]):
     """A grounder and annotator that uses gilda as a backend."""
 
-    def __init__(self, grounder: gilda.Grounder, *, example_reference: R | None = None) -> None:
+    def __init__(self, grounder: gilda.Grounder, *, reference_cls: type[R] | None = None) -> None:
         """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
-        super().__init__(grounder, example_reference=example_reference)
+        super().__init__(grounder, reference_cls=reference_cls)
 
         pystow.ensure_nltk("stopwords")  # very important - do this before importing gilda.ner
 
