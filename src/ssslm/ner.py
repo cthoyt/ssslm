@@ -22,7 +22,6 @@ from typing import (
     overload,
 )
 
-import curies
 import pystow
 from curies import NamableReference
 from pydantic import BaseModel
@@ -66,16 +65,38 @@ __all__ = [
 Implementation: TypeAlias = Literal["gilda"]
 
 #: A type for an object can be coerced into a SSSLM-backed grounder via :func:`make_grounder`
-GrounderHint: TypeAlias = Union[Iterable[LiteralMapping], str, Path, "gilda.Grounder", "Grounder"]
+GrounderHint: TypeAlias = Union[
+    Iterable[LiteralMapping[R]], str, Path, "gilda.Grounder", "Grounder[R]"
+]
+
+
+@overload
+def make_grounder(
+    grounder_hint: Iterable[LiteralMapping[R]] | Grounder[R],
+    *,
+    implementation: Implementation | None = ...,
+    progress: bool = ...,
+    **kwargs: Any,
+) -> Grounder[R]: ...
+
+
+@overload
+def make_grounder(
+    grounder_hint: str | Path | gilda.Grounder,
+    *,
+    implementation: Implementation | None = ...,
+    progress: bool = ...,
+    **kwargs: Any,
+) -> Grounder[NamableReference]: ...
 
 
 def make_grounder(
-    grounder_hint: GrounderHint,
+    grounder_hint: Iterable[LiteralMapping[R]] | str | Path | gilda.Grounder | Grounder[R],
     *,
     implementation: Implementation | None = None,
     progress: bool = False,
     **kwargs: Any,
-) -> Grounder:
+) -> Grounder[NamableReference] | Grounder[R]:
     """Get a grounder from literal mappings.
 
     :param grounder_hint: An object that can be coerced into a SSSLM-backed grounder.
@@ -135,7 +156,9 @@ def make_grounder(
     if _is_gilda_grounder(grounder_hint):
         return GildaGrounder(grounder_hint)
     if isinstance(grounder_hint, str | Path):
-        grounder_hint = read_literal_mappings(grounder_hint, show_progress=progress)
+        return GildaGrounder.from_literal_mappings(
+            read_literal_mappings(grounder_hint, show_progress=progress)
+        )
 
     if implementation is None or implementation == "gilda":
         return GildaGrounder.from_literal_mappings(
@@ -230,9 +253,11 @@ def read_annotations(path: str | Path | TextIO) -> list[Annotation]:
         return [Annotation.model_validate(_reorganize(record)) for record in reader]
 
 
-def _reorganize(d: dict[str, Any]) -> dict[str, Any]:
+def _reorganize(
+    d: dict[str, Any], reference_cls: type[NamableReference] = NamableReference
+) -> dict[str, Any]:
     d["match"] = Match(
-        reference=curies.NamableReference.from_curie(d.pop("curie"), name=d.pop("name") or None),
+        reference=reference_cls.from_curie(d.pop("curie"), name=d.pop("name") or None),
         score=d.pop("score"),
     )
     d = {k: v for k, v in d.items() if k and v}

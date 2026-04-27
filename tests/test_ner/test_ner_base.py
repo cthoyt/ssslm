@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 
 import curies
-from curies import NamedReference, Reference
+from curies import NamableReference, NamedReference, Reference
 
 import ssslm
 from ssslm import LiteralMapping
@@ -25,8 +25,9 @@ class TestNER(cases.BaseNERTestCase):
 
     def test_impl_error(self) -> None:
         """Test erroring on invalid impl."""
+        hint: list[NamableReference] = []
         with self.assertRaises(ValueError):
-            make_grounder([], implementation="xxx")  # type:ignore[arg-type]
+            make_grounder(hint, implementation="xxx")  # type:ignore
 
     @REQUIRES_GILDA
     def test_empty(self) -> None:
