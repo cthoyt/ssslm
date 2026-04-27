@@ -9,14 +9,25 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Union, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    Literal,
+    TextIO,
+    TypeAlias,
+    TypeGuard,
+    Union,
+    cast,
+    overload,
+)
 
 import curies
 import pystow
 from curies import NamableReference, NamedReference
 from pydantic import BaseModel
 from pystow.utils import safe_open_dict_reader, safe_open_writer
-from typing_extensions import Self
+from typing_extensions import Self, TypeVar
 
 from .model import (
     GildaErrorPolicy,
@@ -55,6 +66,8 @@ Implementation: TypeAlias = Literal["gilda"]
 
 #: A type for an object can be coerced into a SSSLM-backed grounder via :func:`make_grounder`
 GrounderHint: TypeAlias = Union[Iterable[LiteralMapping], str, Path, "gilda.Grounder", "Grounder"]
+
+R = TypeVar("R", bound=NamableReference, default=NamableReference)
 
 
 def make_grounder(
@@ -141,10 +154,10 @@ def _is_gilda_grounder(obj: Any) -> TypeGuard[gilda.Grounder]:
     return isinstance(obj, gilda.Grounder)
 
 
-class Match(BaseModel):
+class Match(BaseModel, Generic[R]):
     """A match from NER."""
 
-    reference: NamableReference
+    reference: R
     score: float
 
     @property
