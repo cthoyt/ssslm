@@ -70,6 +70,7 @@ GrounderHint: TypeAlias = Union[
 ]
 
 
+# docstr-coverage:excused `overload`
 @overload
 def make_grounder(
     grounder_hint: Iterable[LiteralMapping[R]] | Grounder[R],
@@ -80,6 +81,7 @@ def make_grounder(
 ) -> Grounder[R]: ...
 
 
+# docstr-coverage:excused `overload`
 @overload
 def make_grounder(
     grounder_hint: str | Path | gilda.Grounder,
