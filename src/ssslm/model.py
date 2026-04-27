@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
 from pystow.utils import safe_open, safe_open_writer
 from tqdm import tqdm
+from typing_extensions import TypeVar
 
 if TYPE_CHECKING:
     import gilda
@@ -30,6 +31,7 @@ __all__ = [
     "LiteralMapping",
     "LiteralMappingIndex",
     "LiteralMappingTuple",
+    "R",
     "Writer",
     "append_literal_mapping",
     "df_to_literal_mappings",
@@ -47,6 +49,9 @@ __all__ = [
 
 PANDAS_AVAILABLE = importlib.util.find_spec("pandas")
 GILDA_AVAILABLE = importlib.util.find_spec("gilda")
+
+
+R = TypeVar("R", bound=NamableReference, default=NamableReference)
 
 
 class LiteralMappingTuple(NamedTuple):

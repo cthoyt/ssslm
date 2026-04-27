@@ -27,11 +27,12 @@ import pystow
 from curies import NamableReference, NamedReference
 from pydantic import BaseModel
 from pystow.utils import safe_open_dict_reader, safe_open_writer
-from typing_extensions import Self, TypeVar
+from typing_extensions import Self
 
 from .model import (
     GildaErrorPolicy,
     LiteralMapping,
+    R,
     literal_mappings_to_gilda,
     read_literal_mappings,
 )
@@ -64,10 +65,9 @@ __all__ = [
 
 Implementation: TypeAlias = Literal["gilda"]
 
+
 #: A type for an object can be coerced into a SSSLM-backed grounder via :func:`make_grounder`
 GrounderHint: TypeAlias = Union[Iterable[LiteralMapping], str, Path, "gilda.Grounder", "Grounder"]
-
-R = TypeVar("R", bound=NamableReference, default=NamableReference)
 
 
 def make_grounder(
@@ -283,7 +283,9 @@ class Matcher(ABC, Generic[R]):
 
     # docstr-coverage:excused `overload`
     @overload
-    def get_best_match(self, text: str, *, strict: Literal[True] = ..., **kwargs: Any) -> Match[R]: ...
+    def get_best_match(
+        self, text: str, *, strict: Literal[True] = ..., **kwargs: Any
+    ) -> Match[R]: ...
 
     def get_best_match(self, text: str, *, strict: bool = False, **kwargs: Any) -> Match[R] | None:
         """Get matches in the SSSLM format."""
