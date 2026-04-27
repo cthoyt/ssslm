@@ -25,7 +25,6 @@ from typing import (
 import curies
 import pystow
 from curies import NamableReference
-from more_itertools import peekable
 from pydantic import BaseModel
 from pystow.utils import safe_open_dict_reader, safe_open_writer
 from typing_extensions import Self
@@ -577,6 +576,8 @@ class GildaMatcher(Matcher[R], Generic[R]):
             import gilda
 
             grounder_cls = gilda.Grounder
+
+        from more_itertools import peekable
 
         literal_mapping_it = peekable(literal_mappings)
         try:

@@ -129,6 +129,7 @@ gilda-slim = [
     "gilda-slim", # works as a drop-in replacement for gilda
     "nltk", # needed for NER functionality
     "pystow", # needed for auto-download of NLTK stopwords corpus
+    "more_itertools",
 ]
 # needed for using default grounder
 gilda-default = [
@@ -138,6 +139,7 @@ gilda = [
     "gilda",
     "nltk",
     "pystow",
+    "more_itertools",
 ]
 # this doesn't work on versions above 3.10 as of august 2025
 scispacy = [
