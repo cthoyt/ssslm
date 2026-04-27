@@ -51,7 +51,6 @@ __all__ = [
 PANDAS_AVAILABLE = importlib.util.find_spec("pandas")
 GILDA_AVAILABLE = importlib.util.find_spec("gilda")
 
-
 R = TypeVar("R", bound=NamableReference, default=NamableReference)
 
 
@@ -294,7 +293,7 @@ LiteralMappingIndex: TypeAlias = dict[R, list[LiteralMapping[R]]]
 
 
 def literal_mappings_to_gilda(
-    literal_mappings: Iterable[LiteralMapping], *, on_error: GildaErrorPolicy = "raise"
+    literal_mappings: Iterable[LiteralMapping[R]], *, on_error: GildaErrorPolicy = "raise"
 ) -> list[gilda.Term]:
     """Convert literal mappings to gilda terms."""
     gilda_terms = []
@@ -338,7 +337,7 @@ def _gilda_term(
     )
 
 
-def literal_mappings_to_df(literal_mappings: Iterable[LiteralMapping]) -> pandas.DataFrame:
+def literal_mappings_to_df(literal_mappings: Iterable[LiteralMapping[R]]) -> pandas.DataFrame:
     """Get a pandas dataframe from the literal mappings."""
     import pandas as pd
 
@@ -382,7 +381,7 @@ def _resolve_writer(writer: Writer | None = None) -> Writer:
 
 
 def write_literal_mappings(
-    literal_mappings: Iterable[LiteralMapping],
+    literal_mappings: Iterable[LiteralMapping[R]],
     path: str | Path,
     *,
     writer: Writer | None = None,
@@ -398,7 +397,7 @@ def write_literal_mappings(
         raise ValueError(f"invalid writer: {writer}. Choose one of {Writer}")
 
 
-def _write_builtin(*, path: Path, literal_mappings: Iterable[LiteralMapping]) -> None:
+def _write_builtin(*, path: Path, literal_mappings: Iterable[LiteralMapping[R]]) -> None:
     with safe_open_writer(path) as writer:
         writer.writerow(HEADER)
         writer.writerows(
@@ -406,12 +405,12 @@ def _write_builtin(*, path: Path, literal_mappings: Iterable[LiteralMapping]) ->
         )
 
 
-def _write_pandas(*, path: Path, literal_mappings: Iterable[LiteralMapping]) -> None:
+def _write_pandas(*, path: Path, literal_mappings: Iterable[LiteralMapping[R]]) -> None:
     df = literal_mappings_to_df(literal_mappings)
     df.to_csv(path, index=False, sep="\t")
 
 
-def append_literal_mapping(literal_mapping: LiteralMapping, path: str | Path) -> None:
+def append_literal_mapping(literal_mapping: LiteralMapping[R], path: str | Path) -> None:
     """Append a literal mapping to an existing file."""
     with Path(path).expanduser().resolve().open("a") as file:
         print(*literal_mapping._as_row_for_writer(), sep="\t", file=file)
@@ -477,19 +476,23 @@ def read_literal_mappings(
         )
 
 
-def read_gilda_terms(path: str | Path) -> list[LiteralMapping]:
+def read_gilda_terms(
+    path: str | Path,
+    *,
+    reference_cls: NamableReferenceType = NamableReference,
+) -> list[LiteralMapping]:
     """Read Gilda terms from a file."""
     import gilda.grounder
 
     path = _prepare_gilda_path(path)
     return [
-        LiteralMapping.from_gilda(gilda_term)
+        LiteralMapping.from_gilda(gilda_term, reference_cls=reference_cls)
         for gilda_term in gilda.grounder.load_entries_from_terms_file(path)
     ]
 
 
 def write_gilda_terms(
-    literal_mappings: Iterable[LiteralMapping],
+    literal_mappings: Iterable[LiteralMapping[R]],
     path: str | Path,
     *,
     on_error: GildaErrorPolicy = "ignore",
@@ -618,9 +621,14 @@ def _get_prefixes_from_index(literal_mapping_index: LiteralMappingIndex[R]) -> s
     )
 
 
-def lint_literal_mappings(path: Path, *, delimiter: str | None = None) -> None:
+def lint_literal_mappings(
+    path: Path,
+    *,
+    delimiter: str | None = None,
+    reference_cls: NamableReferenceType = NamableReference,
+) -> None:
     """Lint a literal mappings file."""
-    literal_mappings = read_literal_mappings(path, delimiter=delimiter)
+    literal_mappings = read_literal_mappings(path, delimiter=delimiter, reference_cls=reference_cls)
     literal_mappings = sorted(literal_mappings)
     write_literal_mappings(literal_mappings, path)
 

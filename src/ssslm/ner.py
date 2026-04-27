@@ -622,7 +622,7 @@ class GildaMatcher(Matcher[R], Generic[R]):
             example_reference = None
         else:
             # this should be able to infer a peekable is an iterable... ignore for now
-            terms = literal_mappings_to_gilda(peekable_literal_mappings, on_error=on_error)  # type:ignore[arg-type]
+            terms = literal_mappings_to_gilda(peekable_literal_mappings, on_error=on_error)
         if terms and filter_duplicates:
             from gilda.term import filter_out_duplicates
 
