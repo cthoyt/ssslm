@@ -181,16 +181,16 @@ class Match(BaseModel, Generic[R]):
         return self.reference.name
 
 
-class Annotation(BaseModel):
+class Annotation(BaseModel, Generic[R]):
     """Data about an annotation."""
 
     text: str
     start: int
     end: int
-    match: Match
+    match: Match[R]
 
     @property
-    def reference(self) -> NamableReference:
+    def reference(self) -> R:
         """Get the scored match's reference."""
         return self.match.reference
 
@@ -268,24 +268,24 @@ class PandasTargetType(enum.Enum):
     match = enum.auto()
 
 
-class Matcher(ABC):
+class Matcher(ABC, Generic[R]):
     """An interface for a named entity normalizer."""
 
     @abstractmethod
-    def get_matches(self, text: str, **kwargs: Any) -> list[Match]:
+    def get_matches(self, text: str, **kwargs: Any) -> list[Match[R]]:
         """Get matches in the SSSLM format."""
 
     # docstr-coverage:excused `overload`
     @overload
     def get_best_match(
         self, text: str, *, strict: Literal[False] = ..., **kwargs: Any
-    ) -> Match | None: ...
+    ) -> Match[R] | None: ...
 
     # docstr-coverage:excused `overload`
     @overload
-    def get_best_match(self, text: str, *, strict: Literal[True] = ..., **kwargs: Any) -> Match: ...
+    def get_best_match(self, text: str, *, strict: Literal[True] = ..., **kwargs: Any) -> Match[R]: ...
 
-    def get_best_match(self, text: str, *, strict: bool = False, **kwargs: Any) -> Match | None:
+    def get_best_match(self, text: str, *, strict: bool = False, **kwargs: Any) -> Match[R] | None:
         """Get matches in the SSSLM format."""
         matches = self.get_matches(text, **kwargs)
         if matches:
@@ -342,10 +342,10 @@ class Matcher(ABC):
         df[target_column] = df[column].map(func)
 
 
-class WrappedMatcher(Matcher):
+class WrappedMatcher(Matcher[R], Generic[R]):
     """A matcher that wraps another matcher, allowing for composition."""
 
-    def __init__(self, *, matcher: Matcher) -> None:
+    def __init__(self, *, matcher: Matcher[R]) -> None:
         """Instantiate the matcher around another matcher."""
         self._matcher = matcher
 
@@ -354,13 +354,13 @@ class WrappedMatcher(Matcher):
         return self._matcher.not_empty()
 
     # docstr-coverage:excused `inherited`
-    def get_matches(self, text: str, **kwargs: Any) -> list[Match]:  # noqa:D102
+    def get_matches(self, text: str, **kwargs: Any) -> list[Match[R]]:  # noqa:D102
         return self._matcher.get_matches(text, **kwargs)
 
 
 def _match_helper(
-    text: str, matcher: Matcher, target_type: PandasTargetType | str, **kwargs: Any
-) -> str | None | Match | NamableReference:
+    text: str, matcher: Matcher[R], target_type: PandasTargetType | str, **kwargs: Any
+) -> str | None | Match[R] | NamableReference:
     if not isinstance(text, str):  # this catches pd.nan's
         return None
     match = matcher.get_best_match(text, strict=False, **kwargs)
@@ -377,19 +377,19 @@ def _match_helper(
     raise TypeError
 
 
-class Annotator(ABC):
+class Annotator(ABC, Generic[R]):
     """An interface for something that can annotate."""
 
     @abstractmethod
-    def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+    def annotate(self, text: str, **kwargs: Any) -> list[Annotation[R]]:
         """Annotate the text."""
 
 
-class Grounder(Matcher, Annotator, ABC):
+class Grounder(Matcher[R], Annotator[R], ABC, Generic[R]):
     """A combine matcher and annotator."""
 
 
-class SpacyGrounder(Grounder, WrappedMatcher):
+class SpacyGrounder(Grounder[R], WrappedMatcher[R], Generic[R]):
     """An annotator that works via spacy.
 
     .. warning::
@@ -400,7 +400,7 @@ class SpacyGrounder(Grounder, WrappedMatcher):
 
     spacy_language_model: spacy.Language
 
-    def __init__(self, matcher: Matcher, spacy_model: str | spacy.Language) -> None:
+    def __init__(self, matcher: Matcher[R], spacy_model: str | spacy.Language) -> None:
         """Create a grounder based on a pre-defined matcher and a SpaCy NER model.
 
         :param matcher: A pre-defined matcher
@@ -438,7 +438,7 @@ class SpacyGrounder(Grounder, WrappedMatcher):
         else:
             self.spacy_language_model = spacy_model
 
-    def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+    def annotate(self, text: str, **kwargs: Any) -> list[Annotation[R]]:
         """Annotate the text using a combination of the spacy annotator, and the wrapped matcher."""
         document: spacy.tokens.Doc = self.spacy_language_model(text)
         return [
@@ -454,14 +454,14 @@ class SpacyGrounder(Grounder, WrappedMatcher):
 GLINER_DEFAULT = "urchade/gliner_medium-v2.1"
 
 
-class GLiNERGrounder(Grounder, WrappedMatcher):
+class GLiNERGrounder(Grounder[R], WrappedMatcher[R], Generic[R]):
     """An annotator that works via :mod:`gliner`."""
 
     model: gliner.GLiNER
 
     def __init__(
         self,
-        matcher: Matcher,
+        matcher: Matcher[R],
         *,
         model: str | gliner.GLiNER | None = None,
         labels: list[str],
@@ -517,7 +517,7 @@ class GLiNERGrounder(Grounder, WrappedMatcher):
         self.labels = labels
         self.threshold = threshold or 0.5
 
-    def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+    def annotate(self, text: str, **kwargs: Any) -> list[Annotation[R]]:
         """Annotate the text the GLiNER annotator and the wrapped matcher."""
         entities = self.model.predict_entities(text, self.labels, threshold=self.threshold)
         # TODO this also has an entity['score'] that could be used
