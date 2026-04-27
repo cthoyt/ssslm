@@ -128,7 +128,7 @@ release = [
 gilda-slim = [
     "gilda-slim", # works as a drop-in replacement for gilda
     "nltk", # needed for NER functionality
-    "more_itertools",
+    "more-itertools",
 ]
 # needed for using default grounder
 gilda-default = [
@@ -137,7 +137,7 @@ gilda-default = [
 gilda = [
     "gilda",
     "nltk",
-    "more_itertools",
+    "more-itertools",
 ]
 # this doesn't work on versions above 3.10 as of august 2025
 scispacy = [

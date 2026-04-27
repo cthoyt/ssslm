@@ -579,14 +579,15 @@ class GildaMatcher(Matcher[R], Generic[R]):
 
         from more_itertools import peekable
 
-        literal_mapping_it = peekable(literal_mappings)
+        peekable_literal_mappings = peekable(literal_mappings)
         try:
-            example_reference: R | None = literal_mapping_it.peek().reference
+            example_reference: R | None = peekable_literal_mappings.peek().reference
         except StopIteration:
             terms = []
             example_reference = None
         else:
-            terms = literal_mappings_to_gilda(literal_mapping_it, on_error=on_error)
+            # this should be able to infer a peekable is an iterable... ignore for now
+            terms = literal_mappings_to_gilda(peekable_literal_mappings, on_error=on_error)  # type:ignore[arg-type]
         if terms and filter_duplicates:
             from gilda.term import filter_out_duplicates
 
