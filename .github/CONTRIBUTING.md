@@ -31,21 +31,21 @@ acceptance and merge into the main branch. This has several benefits:
 
 ### Code Style
 
-This project uses `tox` for running code quality checks. Start by installing it
-with `pip install tox tox-uv`.
+This project uses `just` for running code quality checks. Start by installing it
+with `pip install rust-just`.
 
 This project encourages the use of optional static typing. It uses
 [`mypy`](http://mypy-lang.org/) as a type checker. You can check if your code
-passes `mypy` with `tox -e mypy`.
+passes `mypy` with `just mypy`.
 
 This project uses [`ruff`](https://docs.astral.sh/ruff/) to automatically
 enforce a consistent code style. You can apply `ruff format` and other
-pre-configured formatters with `tox -e format`.
+pre-configured formatters with `just format`.
 
 This project uses [`ruff`](https://docs.astral.sh/ruff/) and several plugins for
 additional checks of documentation style, security issues, good variable
 nomenclature, and more (see `pyproject.toml` for a list of Ruff plugins). You
-can check if your code passes `ruff check` with `tox -e lint`.
+can check if your code passes `ruff check` with `just lint`.
 
 Each of these checks are run on each commit using GitHub Actions as a continuous
 integration service. Passing all of them is required for accepting a
@@ -89,15 +89,15 @@ functions that are not fully documented.
 
 This project uses [`sphinx`](https://www.sphinx-doc.org) to automatically build
 documentation into a narrative structure. You can check that the documentation
-builds properly in an isolated environment with `tox -e docs-test` and actually
-build it locally with `tox -e docs`.
+builds properly in an isolated environment with `just docs-test` and actually
+build it locally with `just docs`.
 
 ### Testing
 
 Functions in this repository should be unit tested. These can either be written
 using the `unittest` framework in the `tests/` directory or as embedded
-doctests. You can check that the unit tests pass with `tox -e py` and that the
-doctests pass with `tox -e doctests`. These tests are required to pass for
+doctests. You can check that the unit tests pass with `just test` and that the
+doctests pass with `just doctests`. These tests are required to pass for
 accepting a contribution.
 
 ### Syncing your fork

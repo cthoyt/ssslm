@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/cthoyt/cookiecutter-snekpack",
-  "commit": "30df910cc6fe0b8c5ab780114596fa65ebcdf1eb",
+  "commit": "95a7f864398c4e8f116ef78c17c47352692afae4",
   "checkout": null,
   "context": {
     "cookiecutter": {
@@ -14,19 +14,19 @@
       "github_repository_name": "ssslm",
       "command_line_interface": true,
       "gitlab": false,
-      "runner": "tox",
+      "runner": "just",
       "citation_file": false,
       "__not_charlie": "",
-      "__runner": "tox -e",
-      "__runner_uv": "--with tox-uv tox -e",
-      "__runner_pip": "tox tox-uv",
-      "__runner_install_uv": "uv tool install tox --with tox-uv",
-      "__runner_install_pip": "python3 -m pip install tox tox-uv",
-      "__runner_tests": "py",
+      "__runner": "just",
+      "__runner_uv": "--from rust-just just",
+      "__runner_pip": "rust-just",
+      "__runner_install_uv": "uv tool install rust-just",
+      "__runner_install_pip": "python3 -m pip install rust-just",
+      "__runner_tests": "test",
       "__gh_slug": "cthoyt/ssslm",
       "__package_name_dashed": "ssslm",
       "_template": "https://github.com/cthoyt/cookiecutter-snekpack",
-      "_commit": "30df910cc6fe0b8c5ab780114596fa65ebcdf1eb"
+      "_commit": "95a7f864398c4e8f116ef78c17c47352692afae4"
     }
   },
   "directory": null

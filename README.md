@@ -131,7 +131,7 @@ Here's an example of some rows in the synonyms table (with linkified CURIEs):
 
 ## 🚀 Installation
 
-<!-- Uncomment this section after your first ``tox -e finish``
+<!-- Uncomment this section after your first ``just finish``
 The most recent release can be installed from
 [PyPI](https://pypi.org/project/ssslm/) with uv:
 
@@ -162,7 +162,7 @@ $ python3 -m pip install git+https://github.com/cthoyt/ssslm.git
 
 Contributions, whether filing an issue, making a pull request, or forking, are
 appreciated. See
-[CONTRIBUTING.md](https://github.com/cthoyt/ssslm/blob/master/.github/CONTRIBUTING.md)
+[CONTRIBUTING.md](https://github.com/cthoyt/ssslm/blob/main/.github/CONTRIBUTING.md)
 for more information on getting involved.
 
 ## 👋 Attribution
@@ -247,12 +247,12 @@ $ pre-commit install
 
 ### 🥼 Testing
 
-After cloning the repository and installing `tox` with
-`uv tool install tox --with tox-uv` or `python3 -m pip install tox tox-uv`, the
-unit tests in the `tests/` folder can be run reproducibly with:
+After cloning the repository and installing `just` with
+`uv tool install rust-just` or `python3 -m pip install rust-just`, the unit
+tests in the `tests/` folder can be run reproducibly with:
 
 ```console
-$ tox -e py
+$ just test
 ```
 
 Additionally, these tests are automatically re-run with each commit in a
@@ -265,7 +265,7 @@ The documentation can be built locally using the following:
 ```console
 $ git clone git+https://github.com/cthoyt/ssslm.git
 $ cd ssslm
-$ tox -e docs
+$ just docs
 $ open docs/build/html/index.html
 ```
 
@@ -279,7 +279,7 @@ The documentation can be deployed to [ReadTheDocs](https://readthedocs.io) using
 [`.readthedocs.yml`](.readthedocs.yml) YAML file contains all the configuration
 you'll need. You can also set up continuous integration on GitHub to check not
 only that Sphinx can build the documentation in an isolated environment (i.e.,
-with `tox -e docs-test`) but also that
+with `just docs-test`) but also that
 [ReadTheDocs can build it too](https://docs.readthedocs.io/en/stable/pull-requests.html).
 
 </details>
@@ -360,12 +360,12 @@ Note that this deprecates previous workflows using `.pypirc`.
 
 #### Uploading to PyPI
 
-After installing the package in development mode and installing `tox` with
-`uv tool install tox --with tox-uv` or `python3 -m pip install tox tox-uv`, run
-the following from the console:
+After installing the package in development mode and installing `just` with
+`uv tool install rust-just` or `python3 -m pip install rust-just`, run the
+following from the console:
 
 ```console
-$ tox -e finish
+$ just finish
 ```
 
 This script does the following:
