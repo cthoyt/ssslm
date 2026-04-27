@@ -249,31 +249,42 @@ class Annotation(BaseModel, Generic[R]):
         return self.text[self.start : self.end]
 
 
+@overload
 def read_annotations(
-    path: str | Path | TextIO, *, example_reference: R | None = None
-) -> list[Annotation[R]]:
-    """Read annotations from a TSV file."""
-    return list(_iter_annotations(path, example_reference=example_reference))
+    path: str | Path | TextIO, *, reference_cls: type[R] = ...
+) -> list[Annotation[R]]: ...
 
 
-def _iter_annotations(
-    path: str | Path | TextIO, *, example_reference: R | None = None
-) -> Iterable[Annotation[R]]:
+@overload
+def read_annotations(
+    path: str | Path | TextIO, *, reference_cls: None = ...
+) -> list[Annotation[NamableReference]]: ...
+
+
+def read_annotations(
+    path: str | Path | TextIO, *, reference_cls: type[R] | None = None
+) -> list[Annotation[R]] | list[Annotation[NamableReference]]:
     """Read annotations from a TSV file."""
-    if example_reference is None:
-        reference_cls = NamableReference
-    else:
-        reference_cls = example_reference.__class__
+    rv = []
     with safe_open_dict_reader(path) as reader:
         for record in reader:
-            record["match"] = Match(
-                reference=reference_cls.from_curie(
-                    record.pop("curie"), name=record.pop("name") or None
-                ),
-                score=record.pop("score"),
-            )
+            if reference_cls is None:
+                record["match"] = Match(
+                    reference=NamableReference.from_curie(
+                        record.pop("curie"), name=record.pop("name") or None
+                    ),
+                    score=record.pop("score"),
+                )
+            else:
+                record["match"] = Match(
+                    reference=reference_cls.from_curie(
+                        record.pop("curie"), name=record.pop("name") or None
+                    ),
+                    score=record.pop("score"),
+                )
             record = {k: v for k, v in record.items() if k and v}
-            yield Annotation.model_validate(record)
+            rv.append(Annotation.model_validate(record))
+    return rv
 
 
 def write_annotations(annotations: Iterable[Annotation], path: str | Path | TextIO) -> None:
