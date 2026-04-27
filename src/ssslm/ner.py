@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Union, cast
+from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Union, cast, overload
 
 import curies
 import pystow
@@ -260,10 +260,25 @@ class Matcher(ABC):
     def get_matches(self, text: str, **kwargs: Any) -> list[Match]:
         """Get matches in the SSSLM format."""
 
-    def get_best_match(self, text: str, **kwargs: Any) -> Match | None:
+    # docstr-coverage:excused `overload`
+    @overload
+    def get_best_match(
+        self, text: str, *, strict: Literal[False] = ..., **kwargs: Any
+    ) -> Match | None: ...
+
+    # docstr-coverage:excused `overload`
+    @overload
+    def get_best_match(self, text: str, *, strict: Literal[True] = ..., **kwargs: Any) -> Match: ...
+
+    def get_best_match(self, text: str, *, strict: bool = False, **kwargs: Any) -> Match | None:
         """Get matches in the SSSLM format."""
         matches = self.get_matches(text, **kwargs)
-        return matches[0] if matches else None
+        if matches:
+            return matches[0]
+        elif strict:
+            raise ValueError
+        else:
+            return None
 
     @abstractmethod
     def not_empty(self) -> bool:
@@ -333,7 +348,7 @@ def _match_helper(
 ) -> str | None | Match | NamableReference:
     if not isinstance(text, str):  # this catches pd.nan's
         return None
-    match = matcher.get_best_match(text, **kwargs)
+    match = matcher.get_best_match(text, strict=False, **kwargs)
     if not match:
         return None
     if isinstance(target_type, str):
