@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 import csv
 import datetime
 import gzip
@@ -10,7 +11,7 @@ import itertools as itt
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeAlias
+from typing import TYPE_CHECKING, Any, Generic, Literal, NamedTuple, TypeAlias, cast
 
 from curies import NamableReference, Reference, ReferenceTuple
 from curies import vocabulary as v
@@ -88,11 +89,11 @@ DEFAULT_PREDICATE = v.has_related_synonym
 GildaErrorPolicy: TypeAlias = Literal["ignore", "raise"]
 
 
-class LiteralMapping(BaseModel):
+class LiteralMapping(BaseModel, Generic[R]):
     """A data model for literal mappings."""
 
     # the first four fields are the core of the literal mapping
-    reference: NamableReference = Field(..., description="The subject of the literal mapping")
+    reference: R = Field(..., description="The subject of the literal mapping")
     predicate: Reference = Field(
         default=DEFAULT_PREDICATE,
         description="The predicate that connects the term (as subject) "
@@ -134,7 +135,7 @@ class LiteralMapping(BaseModel):
         "Only use `NCBITaxon` or `ncbitaxon` as the prefix.",
     )
 
-    def __lt__(self, other: LiteralMapping) -> bool:
+    def __lt__(self, other: LiteralMapping[R]) -> bool:
         return _lm_sort_key(self) < _lm_sort_key(other)
 
     def get_all_references(self) -> set[Reference]:
@@ -170,7 +171,7 @@ class LiteralMapping(BaseModel):
         *,
         names: Mapping[Reference, str] | None = None,
         reference_cls: NamableReferenceType = NamableReference,
-    ) -> LiteralMapping:
+    ) -> LiteralMapping[NamableReference]:
         """Parse a dictionary representing a row in a TSV."""
         reference = reference_cls.from_curie(row["curie"])
         name = (names or {}).get(reference) or row.get("name")
@@ -199,7 +200,7 @@ class LiteralMapping(BaseModel):
         if contributor_curie := (row.get("contributor") or "").strip():
             data["contributor"] = reference_cls.from_curie(contributor_curie)
 
-        return cls.model_validate(data)
+        return cast(LiteralMapping[NamableReference], cls.model_validate(data))
 
     def _as_row(self) -> LiteralMappingTuple:
         """Get the synonym as a row for writing."""
@@ -236,13 +237,14 @@ class LiteralMapping(BaseModel):
 
     @classmethod
     def from_gilda(
-        cls, term: gilda.Term, *, reference_cls: NamableReferenceType = NamableReference
-    ) -> LiteralMapping:
+        cls, term: gilda.Term, *, reference_cls: builtins.type[NamableReference] = NamableReference
+    ) -> LiteralMapping[NamableReference]:
         """Construct a synonym from a :mod:`gilda` term.
 
         :param term: A Gilda term
+        :param reference_cls: the class to use to instantiate references
 
-        :returns: A synonym object
+        :returns: A literal mapping object
 
         .. warning::
 
@@ -259,7 +261,7 @@ class LiteralMapping(BaseModel):
         }
         if term.organism:
             data["taxon"] = reference_cls(prefix="NCBITaxon", identifier=term.organism)
-        return cls.model_validate(data)
+        return cast(LiteralMapping[NamableReference], cls.model_validate(data))
 
     def _get_gilda_status(self) -> GildaStatus:
         """Get the Gilda status for a synonym."""
@@ -288,7 +290,7 @@ class LiteralMapping(BaseModel):
 
 
 #: An index from the reference to a list of mappings that use the reference
-LiteralMappingIndex: TypeAlias = dict[NamableReference, list[LiteralMapping]]
+LiteralMappingIndex: TypeAlias = dict[R, list[LiteralMapping[R]]]
 
 
 def literal_mappings_to_gilda(
@@ -577,10 +579,10 @@ def _from_dicts(
 
 
 def group_literal_mappings(
-    literal_mappings: Iterable[LiteralMapping],
-) -> LiteralMappingIndex:
+    literal_mappings: Iterable[LiteralMapping[R]],
+) -> dict[R, list[LiteralMapping[R]]]:
     """Aggregate literal mappings by reference."""
-    dd: defaultdict[NamableReference, list[LiteralMapping]] = defaultdict(list)
+    dd: defaultdict[R, list[LiteralMapping[R]]] = defaultdict(list)
     for literal_mapping in tqdm(
         literal_mappings, unit="literal mapping", unit_scale=True, leave=False
     ):
@@ -588,7 +590,9 @@ def group_literal_mappings(
     return dict(dd)
 
 
-def get_prefixes(literal_mapping_index: LiteralMappingIndex | list[LiteralMapping]) -> set[str]:
+def get_prefixes(
+    literal_mapping_index: LiteralMappingIndex[R] | list[LiteralMapping[R]],
+) -> set[str]:
     """Get all prefixes appearing in a literal mapping index or iterable of literal mappings."""
     if isinstance(literal_mapping_index, dict):
         return _get_prefixes_from_index(literal_mapping_index)
@@ -598,7 +602,7 @@ def get_prefixes(literal_mapping_index: LiteralMappingIndex | list[LiteralMappin
         raise TypeError
 
 
-def _get_prefixes_from_iterable(literal_mappings: Iterable[LiteralMapping]) -> set[str]:
+def _get_prefixes_from_iterable(literal_mappings: Iterable[LiteralMapping[R]]) -> set[str]:
     return {
         reference.prefix
         for literal_mapping in literal_mappings
@@ -606,7 +610,7 @@ def _get_prefixes_from_iterable(literal_mappings: Iterable[LiteralMapping]) -> s
     }
 
 
-def _get_prefixes_from_index(literal_mapping_index: LiteralMappingIndex) -> set[str]:
+def _get_prefixes_from_index(literal_mapping_index: LiteralMappingIndex[R]) -> set[str]:
     return _get_prefixes_from_iterable(
         literal_mapping
         for literal_mappings in literal_mapping_index.values()
@@ -621,16 +625,16 @@ def lint_literal_mappings(path: Path, *, delimiter: str | None = None) -> None:
     write_literal_mappings(literal_mappings, path)
 
 
-def _lm_sort_key(lm: LiteralMapping) -> tuple[str, str, str, str]:
+def _lm_sort_key(lm: LiteralMapping[R]) -> tuple[str, str, str, str]:
     return lm.text.casefold(), lm.text, lm.reference.curie.casefold(), lm.reference.curie
 
 
 def remap_literal_mappings(
-    literal_mappings: list[LiteralMapping],
-    mappings: list[tuple[Reference, Reference]],
+    literal_mappings: list[LiteralMapping[R]],
+    mappings: list[tuple[R, R]],
     *,
     progress: bool = False,
-) -> list[LiteralMapping]:
+) -> list[LiteralMapping[R]]:
     """Use a priority mapping to re-write terms with priority groundings.
 
     :param literal_mappings: A list of literal mappings
@@ -643,14 +647,14 @@ def remap_literal_mappings(
 
     # build a lookup table, since the mappings coming into this function
     # might not have names associated with them, but the literal mappings do
-    refs: dict[ReferenceTuple, NamableReference] = {i.pair: i for i in index}
+    refs: dict[ReferenceTuple, R] = {i.pair: i for i in index}
 
     for source, target in tqdm(
         mappings, unit="mapping", unit_scale=True, desc="applying mappings", disable=not progress
     ):
         # overwrite the target with a reference that has a name, if it exists
         target = refs.get(target.pair, target)
-        source_literal_mappings: list[LiteralMapping] | None = index.pop(source, None)
+        source_literal_mappings: list[LiteralMapping[R]] | None = index.pop(source, None)
         if source_literal_mappings:
             index.setdefault(target, []).extend(
                 _make_new_lm(literal_mapping, target) for literal_mapping in source_literal_mappings
@@ -663,13 +667,13 @@ def remap_literal_mappings(
 
 
 def _make_new_lm(
-    term: LiteralMapping,
-    ref: Reference,
-) -> LiteralMapping:
+    term: LiteralMapping[R],
+    reference: Reference,
+) -> LiteralMapping[R]:
     """Make a new literal term object by replacing the database, identifier, and name."""
-    new_ref = NamableReference(
-        prefix=ref.prefix,
-        identifier=ref.identifier,
-        name=getattr(ref, "name", None),
+    new_ref: R = term.reference.__class__(
+        prefix=reference.prefix,
+        identifier=reference.identifier,
+        name=getattr(reference, "name", None),
     )
     return term.model_copy(update={"reference": new_ref})
