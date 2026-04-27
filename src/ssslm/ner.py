@@ -268,6 +268,7 @@ def read_annotations(
     rv = []
     with safe_open_dict_reader(path) as reader:
         for record in reader:
+            # TODO can the conditional be consolidated?
             if reference_cls is None:
                 record["match"] = Match(
                     reference=NamableReference.from_curie(
