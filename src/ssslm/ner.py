@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Union
+from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Union, cast, overload
 
 import curies
 import pystow
@@ -126,7 +126,9 @@ def make_grounder(
         grounder_hint = read_literal_mappings(grounder_hint, show_progress=progress)
 
     if implementation is None or implementation == "gilda":
-        return GildaGrounder.from_literal_mappings(grounder_hint, **kwargs)
+        return GildaGrounder.from_literal_mappings(
+            cast(Iterable[LiteralMapping], grounder_hint), **kwargs
+        )
     raise ValueError(f"Unsupported implementation: {implementation}")
 
 
@@ -260,10 +262,25 @@ class Matcher(ABC):
     def get_matches(self, text: str, **kwargs: Any) -> list[Match]:
         """Get matches in the SSSLM format."""
 
-    def get_best_match(self, text: str, **kwargs: Any) -> Match | None:
+    # docstr-coverage:excused `overload`
+    @overload
+    def get_best_match(
+        self, text: str, *, strict: Literal[False] = ..., **kwargs: Any
+    ) -> Match | None: ...
+
+    # docstr-coverage:excused `overload`
+    @overload
+    def get_best_match(self, text: str, *, strict: Literal[True] = ..., **kwargs: Any) -> Match: ...
+
+    def get_best_match(self, text: str, *, strict: bool = False, **kwargs: Any) -> Match | None:
         """Get matches in the SSSLM format."""
         matches = self.get_matches(text, **kwargs)
-        return matches[0] if matches else None
+        if matches:
+            return matches[0]
+        elif strict:
+            raise ValueError
+        else:
+            return None
 
     @abstractmethod
     def not_empty(self) -> bool:
@@ -333,7 +350,7 @@ def _match_helper(
 ) -> str | None | Match | NamableReference:
     if not isinstance(text, str):  # this catches pd.nan's
         return None
-    match = matcher.get_best_match(text, **kwargs)
+    match = matcher.get_best_match(text, strict=False, **kwargs)
     if not match:
         return None
     if isinstance(target_type, str):
@@ -514,7 +531,8 @@ class GildaMatcher(Matcher):
         """Get the default/builtin grounder."""
         import gilda.api
 
-        return cls(grounder=gilda.api.grounder.get_grounder())
+        grounder = gilda.api.grounder.get_grounder()  # type:ignore[no-untyped-call]
+        return cls(grounder=grounder)
 
     @classmethod
     def from_literal_mappings(
@@ -547,7 +565,7 @@ class GildaMatcher(Matcher):
 
             # suppress logging counting of terms
             logging.getLogger("gilda.term").setLevel(logging.WARNING)
-            terms = filter_out_duplicates(terms)
+            terms = filter_out_duplicates(terms)  # type:ignore[no-untyped-call]
         grounder = grounder_cls(terms, namespace_priority=prefix_priority)
         return cls(grounder)
 
@@ -573,7 +591,7 @@ class GildaMatcher(Matcher):
         """Get matches in the SSSLM format using :meth:`gilda.Grounder.ground`."""
         return [
             self._convert_gilda_match(scored_match)
-            for scored_match in self._grounder.ground(
+            for scored_match in self._grounder.ground(  # type:ignore[no-untyped-call]
                 text, context=context, organisms=organisms, namespaces=namespaces
             )
         ]

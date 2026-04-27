@@ -45,7 +45,6 @@ __all__ = [
     "write_literal_mappings",
 ]
 
-
 PANDAS_AVAILABLE = importlib.util.find_spec("pandas")
 GILDA_AVAILABLE = importlib.util.find_spec("gilda")
 
@@ -318,8 +317,10 @@ def _gilda_term(
     import gilda
     from gilda.process import normalize
 
-    return gilda.Term(
-        normalize(text),
+    norm_text = normalize(text)  # type:ignore[no-untyped-call]
+
+    return gilda.Term(  # type:ignore[no-untyped-call]
+        norm_text,
         text=text,
         db=reference.prefix,
         id=reference.identifier,
@@ -554,7 +555,11 @@ def _from_dicts(
         disable=not show_progress,
     )
     for i, record in enumerate(it, start=2):
-        record = {k: v for k, v in record.items() if k and v and k.strip() and v.strip()}
+        record = {
+            k: v
+            for k, v in record.items()
+            if k and v and isinstance(v, str) and k.strip() and v.strip()
+        }
         if record:
             try:
                 literal_mapping = LiteralMapping.from_row(
