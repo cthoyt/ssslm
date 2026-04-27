@@ -24,7 +24,8 @@ from typing import (
 
 import curies
 import pystow
-from curies import NamableReference, NamedReference
+from curies import NamableReference
+from more_itertools import peekable
 from pydantic import BaseModel
 from pystow.utils import safe_open_dict_reader, safe_open_writer
 from typing_extensions import Self
@@ -64,7 +65,6 @@ __all__ = [
 ]
 
 Implementation: TypeAlias = Literal["gilda"]
-
 
 #: A type for an object can be coerced into a SSSLM-backed grounder via :func:`make_grounder`
 GrounderHint: TypeAlias = Union[Iterable[LiteralMapping], str, Path, "gilda.Grounder", "Grounder"]
@@ -530,12 +530,16 @@ class GLiNERGrounder(Grounder[R], WrappedMatcher[R], Generic[R]):
         ]
 
 
-class GildaMatcher(Matcher):
+class GildaMatcher(Matcher[R], Generic[R]):
     """A matcher that uses gilda as a backend."""
 
-    def __init__(self, grounder: gilda.Grounder) -> None:
+    def __init__(self, grounder: gilda.Grounder, *, example_reference: R | None = None) -> None:
         """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
         self._grounder = grounder
+        if example_reference is None:
+            self._reference_cls = NamableReference
+        else:
+            self._reference_cls = example_reference.__class__
 
     def not_empty(self) -> bool:
         """Return if this matcher has lookups indexed in it."""
@@ -552,7 +556,7 @@ class GildaMatcher(Matcher):
     @classmethod
     def from_literal_mappings(
         cls,
-        literal_mappings: Iterable[LiteralMapping],
+        literal_mappings: Iterable[LiteralMapping[R]],
         *,
         prefix_priority: list[str] | None = None,
         grounder_cls: type[gilda.Grounder] | None = None,
@@ -574,21 +578,27 @@ class GildaMatcher(Matcher):
 
             grounder_cls = gilda.Grounder
 
-        terms = literal_mappings_to_gilda(literal_mappings, on_error=on_error)
-        if filter_duplicates:
+        literal_mapping_it = peekable(literal_mappings)
+        try:
+            example_reference: R | None = literal_mapping_it.peek().reference
+        except StopIteration:
+            terms = []
+            example_reference = None
+        else:
+            terms = literal_mappings_to_gilda(literal_mapping_it, on_error=on_error)
+        if terms and filter_duplicates:
             from gilda.term import filter_out_duplicates
 
             # suppress logging counting of terms
             logging.getLogger("gilda.term").setLevel(logging.WARNING)
             terms = filter_out_duplicates(terms)  # type:ignore[no-untyped-call]
         grounder = grounder_cls(terms, namespace_priority=prefix_priority)
-        return cls(grounder)
+        return cls(grounder, example_reference=example_reference)
 
-    @staticmethod
-    def _convert_gilda_match(scored_match: gilda.ScoredMatch) -> Match:
+    def _convert_gilda_match(self, scored_match: gilda.ScoredMatch) -> Match[R]:
         """Wrap a Gilda scored match."""
         return Match(
-            reference=NamedReference(
+            reference=self._reference_cls(
                 prefix=scored_match.term.db,
                 identifier=scored_match.term.id,
                 name=scored_match.term.entry_name,
@@ -602,7 +612,7 @@ class GildaMatcher(Matcher):
         context: str | None = None,
         organisms: list[str] | None = None,
         namespaces: list[str] | None = None,
-    ) -> list[Match]:
+    ) -> list[Match[R]]:
         """Get matches in the SSSLM format using :meth:`gilda.Grounder.ground`."""
         return [
             self._convert_gilda_match(scored_match)
@@ -612,12 +622,12 @@ class GildaMatcher(Matcher):
         ]
 
 
-class GildaGrounder(Grounder, GildaMatcher):
+class GildaGrounder(Grounder[R], GildaMatcher[R], Generic[R]):
     """A grounder and annotator that uses gilda as a backend."""
 
-    def __init__(self, grounder: gilda.Grounder) -> None:
+    def __init__(self, grounder: gilda.Grounder, *, example_reference: R | None = None) -> None:
         """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
-        super().__init__(grounder)
+        super().__init__(grounder, example_reference=example_reference)
 
         pystow.ensure_nltk("stopwords")  # very important - do this before importing gilda.ner
 
@@ -625,7 +635,7 @@ class GildaGrounder(Grounder, GildaMatcher):
 
         self._annotate = gilda.ner.annotate
 
-    def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+    def annotate(self, text: str, **kwargs: Any) -> list[Annotation[R]]:
         """Annotate the text."""
         return [
             Annotation(
