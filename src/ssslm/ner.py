@@ -249,12 +249,14 @@ class Annotation(BaseModel, Generic[R]):
         return self.text[self.start : self.end]
 
 
+# docstr-coverage:excused `overload`
 @overload
 def read_annotations(
     path: str | Path | TextIO, *, reference_cls: type[R] = ...
 ) -> list[Annotation[R]]: ...
 
 
+# docstr-coverage:excused `overload`
 @overload
 def read_annotations(
     path: str | Path | TextIO, *, reference_cls: None = ...

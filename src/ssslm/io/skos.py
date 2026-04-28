@@ -150,6 +150,7 @@ def _get_names(graph: rdflib.Graph, uri_prefix: str) -> dict[str, str]:
     return names
 
 
+# docstr-coverage:excused `overload`
 @overload
 def read_skos(
     graph: str | rdflib.Graph,
@@ -159,6 +160,7 @@ def read_skos(
 ) -> list[LiteralMapping[R]]: ...
 
 
+# docstr-coverage:excused `overload`
 @overload
 def read_skos(
     graph: str | rdflib.Graph,

@@ -163,6 +163,7 @@ class LiteralMapping(BaseModel, Generic[R]):
             raise ValueError("date is not set")
         return self.date.strftime("%Y-%m-%d")
 
+    # docstr-coverage:excused `overload`
     @overload
     @classmethod
     def from_row(
@@ -173,6 +174,7 @@ class LiteralMapping(BaseModel, Generic[R]):
         reference_cls: builtins.type[R] = ...,
     ) -> LiteralMapping[R]: ...
 
+    # docstr-coverage:excused `overload`
     @overload
     @classmethod
     def from_row(
@@ -257,12 +259,14 @@ class LiteralMapping(BaseModel, Generic[R]):
             return v.has_exact_synonym, None
         raise ValueError(f"unhandled gilda status: {status}")
 
+    # docstr-coverage:excused `overload`
     @overload
     @classmethod
     def from_gilda(
         cls, term: gilda.Term, *, reference_cls: builtins.type[R] = ...
     ) -> LiteralMapping[R]: ...
 
+    # docstr-coverage:excused `overload`
     @overload
     @classmethod
     def from_gilda(
@@ -391,6 +395,7 @@ def literal_mappings_to_df(literal_mappings: Iterable[LiteralMapping[R]]) -> pan
     return df
 
 
+# docstr-coverage:excused `overload`
 @overload
 def df_to_literal_mappings(
     df: pandas.DataFrame,
@@ -400,6 +405,7 @@ def df_to_literal_mappings(
 ) -> list[LiteralMapping[NamableReference]]: ...
 
 
+# docstr-coverage:excused `overload`
 @overload
 def df_to_literal_mappings(
     df: pandas.DataFrame,
@@ -472,6 +478,7 @@ def append_literal_mapping(literal_mapping: LiteralMapping[R], path: str | Path)
         print(*literal_mapping._as_row_for_writer(), sep="\t", file=file)
 
 
+# docstr-coverage:excused `overload`
 @overload
 def read_literal_mappings(
     path: str | Path,
@@ -483,6 +490,7 @@ def read_literal_mappings(
 ) -> list[LiteralMapping[R]]: ...
 
 
+# docstr-coverage:excused `overload`
 @overload
 def read_literal_mappings(
     path: str | Path,
@@ -560,6 +568,7 @@ def read_literal_mappings(
         )
 
 
+# docstr-coverage:excused `overload`
 @overload
 def read_gilda_terms(
     path: str | Path,
@@ -568,6 +577,7 @@ def read_gilda_terms(
 ) -> list[LiteralMapping[R]]: ...
 
 
+# docstr-coverage:excused `overload`
 @overload
 def read_gilda_terms(
     path: str | Path,
@@ -613,6 +623,7 @@ def _prepare_gilda_path(path: str | Path) -> Path:
     return path
 
 
+# docstr-coverage:excused `overload`
 @overload
 def _parse_numbers(
     path: str | Path,
@@ -623,6 +634,7 @@ def _parse_numbers(
 ) -> list[LiteralMapping[NamableReference]]: ...
 
 
+# docstr-coverage:excused `overload`
 @overload
 def _parse_numbers(
     path: str | Path,
@@ -655,6 +667,7 @@ def _parse_numbers(
     )
 
 
+# docstr-coverage:excused `overload`
 @overload
 def _from_lines(
     lines: Iterable[str],
@@ -666,6 +679,7 @@ def _from_lines(
 ) -> list[LiteralMapping[NamableReference]]: ...
 
 
+# docstr-coverage:excused `overload`
 @overload
 def _from_lines(
     lines: Iterable[str],
@@ -693,6 +707,7 @@ def _from_lines(
     )
 
 
+# docstr-coverage:excused `overload`
 @overload
 def _from_dicts(
     dicts: Iterable[dict[str, Any]],
@@ -703,6 +718,7 @@ def _from_dicts(
 ) -> list[LiteralMapping[NamableReference]]: ...
 
 
+# docstr-coverage:excused `overload`
 @overload
 def _from_dicts(
     dicts: Iterable[dict[str, Any]],
