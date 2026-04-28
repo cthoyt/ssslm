@@ -585,16 +585,12 @@ def read_gilda_terms(
     import gilda.grounder
 
     path = _prepare_gilda_path(path)
-    if reference_cls is None:
-        return [
-            LiteralMapping.from_gilda(gilda_term)
-            for gilda_term in gilda.grounder.load_entries_from_terms_file(path)
-        ]
-    else:
-        return [
-            LiteralMapping.from_gilda(gilda_term, reference_cls=reference_cls)
-            for gilda_term in gilda.grounder.load_entries_from_terms_file(path)
-        ]
+
+    # we know the result will be homogenous, so we ignore
+    return [  # type:ignore[return-value]
+        LiteralMapping.from_gilda(gilda_term, reference_cls=reference_cls)
+        for gilda_term in gilda.grounder.load_entries_from_terms_file(path)
+    ]
 
 
 def write_gilda_terms(

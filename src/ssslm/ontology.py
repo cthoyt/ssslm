@@ -12,7 +12,7 @@ from curies import NamableReference, Reference
 from pystow.utils import safe_open
 from typing_extensions import Doc
 
-from .model import get_prefixes, group_literal_mappings
+from .model import R, get_prefixes, group_literal_mappings
 
 if TYPE_CHECKING:
     from .curation import Metadata
@@ -128,7 +128,7 @@ def metadata_to_rdf(metadata: Metadata) -> str:
     return first + " ;\n" + "".join(f"    {line} ;\n" for line in lines[:-1]) + f"    {lines[-1]} ."
 
 
-def _text_for_turtle(literal_mapping: LiteralMapping) -> str:
+def _text_for_turtle(literal_mapping: LiteralMapping[R]) -> str:
     """Get the text ready for an object slot in Turtle, with optional language tag."""
     tt = f'"{_clean_str(literal_mapping.text)}"'
     if literal_mapping.language:
@@ -191,7 +191,7 @@ def _iter_prefix_map(
     return sorted(chained_prefix_map.items(), key=lambda i: i[0].casefold())
 
 
-def _get_axiom_str(reference: Reference, literal_mapping: LiteralMapping) -> str | None:
+def _get_axiom_str(reference: Reference, literal_mapping: LiteralMapping[R]) -> str | None:
     """Get the axiom string for a synonym."""
     axiom_parts = []
     if literal_mapping.contributor:
@@ -225,7 +225,7 @@ def _get_axiom_str(reference: Reference, literal_mapping: LiteralMapping) -> str
 
 
 def write_owl_ttl(  # noqa:C901
-    literal_mappings: Iterable[LiteralMapping],
+    literal_mappings: Iterable[LiteralMapping[R]],
     path: str | Path,
     *,
     prefix_definitions: Annotated[

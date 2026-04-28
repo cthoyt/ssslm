@@ -7,7 +7,7 @@ from collections.abc import Iterable
 from functools import lru_cache
 from typing import TYPE_CHECKING, NamedTuple, cast, overload
 
-from curies import NamedReference, Reference
+from curies import NamableReference, NamedReference, Reference
 from curies.vocabulary import has_label
 
 from ..model import LiteralMapping, R
@@ -232,7 +232,8 @@ def read_skos(
     results = cast(
         Iterable["tuple[rdflib.URIRef, rdflib.URIRef, rdflib.Literal]"], graph.query(LM_QUERY)
     )
-    rv = [
+    # we're ignoring because we know the results will be homogenous
+    rv: list[LiteralMapping[R]] | list[LiteralMapping[NamableReference]] = [
         LiteralMapping(
             reference=_get_reference(uri),
             text=str(value),
@@ -242,6 +243,4 @@ def read_skos(
         for uri, predicate_uri, value in results
         if uri.startswith(uri_prefix)
     ]
-
-    # we're ignoring because we know the results will be homogenous
     return rv  # type:ignore[return-value]

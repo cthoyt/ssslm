@@ -265,7 +265,7 @@ def read_annotations(
     path: str | Path | TextIO, *, reference_cls: type[R] | None = None
 ) -> list[Annotation[R]] | list[Annotation[NamableReference]]:
     """Read annotations from a TSV file."""
-    rv = []
+    rv: list[Annotation[R]] | list[Annotation[NamableReference]] = []
     with safe_open_dict_reader(path) as reader:
         for record in reader:
             # TODO can the conditional be consolidated?
@@ -288,7 +288,7 @@ def read_annotations(
     return rv
 
 
-def write_annotations(annotations: Iterable[Annotation], path: str | Path | TextIO) -> None:
+def write_annotations(annotations: Iterable[Annotation[R]], path: str | Path | TextIO) -> None:
     """Write annotations to a TSV file."""
     with safe_open_writer(path) as writer:
         writer.writerow(("curie", "name", "score", "start", "end", "text", "language", "source"))
