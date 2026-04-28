@@ -589,7 +589,7 @@ class GildaMatcher(Matcher[R], Generic[R]):
         if reference_cls is None:
             self._reference_cls = cast(type[R], NamableReference)
         else:
-            self._reference_cls = reference_cls.__class__  # type:ignore
+            self._reference_cls = reference_cls
 
     def not_empty(self) -> bool:
         """Return if this matcher has lookups indexed in it."""

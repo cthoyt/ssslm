@@ -57,7 +57,7 @@ class Repository(Generic[R]):
         if reference_cls is None:
             self._reference_cls = cast(type[R], NamableReference)
         else:
-            self._reference_cls = reference_cls.__class__  # type:ignore
+            self._reference_cls = reference_cls
 
     def cli(self, *args: Any, **kwargs: Any) -> None:
         """Run the CLI."""
