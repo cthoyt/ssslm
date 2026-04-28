@@ -164,7 +164,7 @@ def make_grounder(
 
     if implementation is None or implementation == "gilda":
         return GildaGrounder.from_literal_mappings(
-            cast(Iterable[LiteralMapping], grounder_hint), **kwargs
+            cast(Iterable[LiteralMapping[R]], grounder_hint), **kwargs
         )
     raise ValueError(f"Unsupported implementation: {implementation}")
 
