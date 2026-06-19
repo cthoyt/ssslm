@@ -11,7 +11,17 @@ import itertools as itt
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic, Literal, NamedTuple, TypeAlias, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    Generic,
+    Literal,
+    NamedTuple,
+    TypeAlias,
+    cast,
+    overload,
+)
 
 from curies import NamableReference, Reference, ReferenceTuple
 from curies import vocabulary as v
@@ -93,46 +103,56 @@ class LiteralMapping(BaseModel, Generic[R]):
 
     # the first four fields are the core of the literal mapping
     reference: R = Field(..., description="The subject of the literal mapping")
-    predicate: Reference = Field(
-        default=DEFAULT_PREDICATE,
-        description="The predicate that connects the term (as subject) "
-        "to the textual synonym (as object)",
-        examples=PREDICATES,
-    )
-    text: str = Field(..., description="The object of the literal mapping")
-    language: LanguageAlpha2 | None = Field(
-        None,
-        description="The language of the synonym. If not given, typically "
-        "assumed to be american english.",
-    )
+    predicate: Annotated[
+        Reference,
+        Field(
+            description="The predicate that connects the term (as subject) "
+            "to the textual synonym (as object)",
+            examples=PREDICATES,
+        ),
+    ] = DEFAULT_PREDICATE
+    text: Annotated[str, Field(description="The object of the literal mapping")]
+    language: Annotated[
+        LanguageAlpha2 | None,
+        Field(
+            description="The language of the synonym. If not given, typically "
+            "assumed to be american english.",
+        ),
+    ] = None
 
-    type: Reference | None = Field(
-        default=None,
-        title="Synonym type",
-        description="A qualification for the type of mapping",
-        examples=list(v.synonym_types),
-    )
+    type: Annotated[
+        Reference | None,
+        Field(
+            title="Synonym type",
+            description="A qualification for the type of mapping",
+            examples=list(v.synonym_types),
+        ),
+    ] = None
     provenance: list[Reference] = Field(
         default_factory=list,
         description="A list of articles (e.g., from PubMed, PMC, arXiv) where this synonym appears",
     )
-    contributor: Reference | None = Field(
-        None,
-        description="The contributor, usually given as a reference to ORCID",
-        examples=[v.charlie],
-    )
-    comment: str | None = Field(
-        None, description="An optional comment on the synonym curation or status"
-    )
-    source: str | None = Field(
-        None, description="The name of the resource where the synonym was curated"
-    )
-    date: datetime.date | None = Field(None, description="The date of initial curation")
-    taxon: Reference | None = Field(
-        None,
-        description="If taxon-specific, annotate it here. "
-        "Only use `NCBITaxon` or `ncbitaxon` as the prefix.",
-    )
+    contributor: Annotated[
+        Reference | None,
+        Field(
+            description="The contributor, usually given as a reference to ORCID",
+            examples=[v.charlie],
+        ),
+    ] = None
+    comment: Annotated[
+        str | None, Field(description="An optional comment on the synonym curation or status")
+    ] = None
+    source: Annotated[
+        str | None, Field(description="The name of the resource where the synonym was curated")
+    ] = None
+    date: Annotated[datetime.date | None, Field(description="The date of initial curation")] = None
+    taxon: Annotated[
+        Reference | None,
+        Field(
+            description="If taxon-specific, annotate it here. "
+            "Only use `NCBITaxon` or `ncbitaxon` as the prefix.",
+        ),
+    ] = None
 
     def __lt__(self, other: LiteralMapping[R]) -> bool:
         return _lm_sort_key(self) < _lm_sort_key(other)
