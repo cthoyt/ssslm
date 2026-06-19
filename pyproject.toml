@@ -1,10 +1,10 @@
 [build-system]
-requires = ["uv_build>=0.9.6,<1.0"]
+requires = ["uv_build>=0.11.2,<1.0"]
 build-backend = "uv_build"
 
 [project]
 name = "ssslm"
-version = "0.1.4-dev"
+version = "0.2.1-dev"
 description = "A simple standard for sharing literal mappings"
 readme = "README.md"
 authors = [
@@ -20,10 +20,8 @@ classifiers = [
     "Development Status :: 1 - Planning",
     "Environment :: Console",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Framework :: Pytest",
-    "Framework :: tox",
     "Framework :: Sphinx",
     "Natural Language :: English",
     "Programming Language :: Python",
@@ -31,21 +29,26 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: 3 :: Only",
     "Typing :: Typed",
-    # TODO add your topics from the Trove controlled vocabulary (see https://pypi.org/classifiers)
 ]
 keywords = [
     "snekpack", # please keep this keyword to credit the cookiecutter-snekpack template
     "cookiecutter",
-    # TODO add your own free-text keywords
+    "named entity recognition",
+    "named entity normalization",
+    "grounding",
+    "natural language processing",
+    "nlp",
+    "spacy",
+    "text mining",
 ]
 
 # License Information.
 # See PEP-639 at https://peps.python.org/pep-0639/#add-license-files-key
-license-files = [
-    "LICENSE",
-]
+license = "MIT"
+license-files = ["LICENSE"]
 
 requires-python = ">=3.10"
 dependencies = [
@@ -54,7 +57,7 @@ dependencies = [
     "pydantic-extra-types[pycountry]",
     "tqdm",
     "click",
-    "pystow>=0.7.13",
+    "pystow>=0.8.11",
 ]
 
 # see https://peps.python.org/pep-0735/ and https://docs.astral.sh/uv/concepts/dependencies/#dependency-groups
@@ -75,7 +78,7 @@ docs = [
     "sphinx>=8",
     "sphinx-rtd-theme>=3.0",
     "sphinx-click",
-    "sphinx_automodapi",
+    "sphinx-automodapi",
 ]
 lint = [
     "ruff",
@@ -84,7 +87,7 @@ typing = [
     { include-group = "tests" },
     "mypy",
     "types-requests",
-    "click-types",
+    "types-click",
 ]
 docs-lint = [
     { include-group = "docs" },
@@ -99,6 +102,7 @@ doctests = [
     "pygments",
 ]
 pyroma = [
+    "uv-build",
     "pyroma",
     "pygments",
 ]
@@ -124,7 +128,7 @@ release = [
 gilda-slim = [
     "gilda-slim", # works as a drop-in replacement for gilda
     "nltk", # needed for NER functionality
-    "pystow", # needed for auto-download of NLTK stopwords corpus
+    "more-itertools",
 ]
 # needed for using default grounder
 gilda-default = [
@@ -133,7 +137,7 @@ gilda-default = [
 gilda = [
     "gilda",
     "nltk",
-    "pystow",
+    "more-itertools",
 ]
 # this doesn't work on versions above 3.10 as of august 2025
 scispacy = [
@@ -150,7 +154,7 @@ web = [
     "uvicorn",
 ]
 pandas = [
-    "pandas",
+    "pandas<3.0",
     "numpy>=2.0.0",
 ]
 rdflib = [
@@ -224,7 +228,6 @@ omit = [
 [tool.coverage.paths]
 source = [
     "src/ssslm",
-    ".tox/*/lib/python*/site-packages/ssslm",
 ]
 
 [tool.coverage.report]
@@ -294,7 +297,7 @@ known-first-party = [
 docstring-code-format = true
 
 [tool.bumpversion]
-current_version = "0.1.4-dev"
+current_version = "0.2.1-dev"
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)(?:-(?P<release>[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?(?:\\+(?P<build>[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?"
 serialize = [
     "{major}.{minor}.{patch}-{release}+{build}",

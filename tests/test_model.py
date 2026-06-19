@@ -123,7 +123,7 @@ class TestGildaIO(unittest.TestCase):
         """Test getting gilda terms."""
         import gilda
 
-        term = gilda.Term(
+        term = gilda.Term(  # type:ignore[no-untyped-call]
             "text",
             text="text",
             db="test",
@@ -253,7 +253,7 @@ class TestModel(unittest.TestCase):
             ]
         )
         mappings = [(_s(TR_1), _s(TR_2)), (_s(TR_4), _s(TR_5))]
-        new_literal_mappings = ssslm.remap_literal_mappings(literal_mappings, mappings)
+        new_literal_mappings = ssslm.remap_literal_mappings(literal_mappings, mappings)  # type:ignore[misc]
         expected_literal_mappings = sorted(
             [
                 LiteralMapping(reference=TR_2, text="test", predicate=v.has_label, date=today),

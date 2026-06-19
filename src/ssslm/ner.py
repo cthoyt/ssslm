@@ -9,11 +9,21 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, TypeGuard, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    Literal,
+    TextIO,
+    TypeAlias,
+    TypeGuard,
+    Union,
+    cast,
+    overload,
+)
 
-import curies
 import pystow
-from curies import NamableReference, NamedReference
+from curies import NamableReference
 from pydantic import BaseModel
 from pystow.utils import safe_open_dict_reader, safe_open_writer
 from typing_extensions import Self
@@ -21,6 +31,7 @@ from typing_extensions import Self
 from .model import (
     GildaErrorPolicy,
     LiteralMapping,
+    R,
     literal_mappings_to_gilda,
     read_literal_mappings,
 )
@@ -54,15 +65,40 @@ __all__ = [
 Implementation: TypeAlias = Literal["gilda"]
 
 #: A type for an object can be coerced into a SSSLM-backed grounder via :func:`make_grounder`
-GrounderHint: TypeAlias = Union[Iterable[LiteralMapping], str, Path, "gilda.Grounder", "Grounder"]
+GrounderHint: TypeAlias = Union[
+    Iterable[LiteralMapping[R]], str, Path, "gilda.Grounder", "Grounder[R]"
+]
+
+
+# docstr-coverage:excused `overload`
+@overload
+def make_grounder(
+    grounder_hint: Iterable[LiteralMapping[R]] | Grounder[R],
+    *,
+    implementation: Implementation | None = ...,
+    progress: bool = ...,
+    **kwargs: Any,
+) -> Grounder[R]: ...
+
+
+# docstr-coverage:excused `overload`
+@overload
+def make_grounder(
+    grounder_hint: str | Path | gilda.Grounder,
+    *,
+    implementation: Implementation | None = ...,
+    progress: bool = ...,
+    **kwargs: Any,
+) -> Grounder[NamableReference]: ...
 
 
 def make_grounder(
-    grounder_hint: GrounderHint,
+    grounder_hint: Iterable[LiteralMapping[R]] | str | Path | gilda.Grounder | Grounder[R],
     *,
     implementation: Implementation | None = None,
+    progress: bool = False,
     **kwargs: Any,
-) -> Grounder:
+) -> Grounder[NamableReference] | Grounder[R]:
     """Get a grounder from literal mappings.
 
     :param grounder_hint: An object that can be coerced into a SSSLM-backed grounder.
@@ -72,6 +108,7 @@ def make_grounder(
         2. An iterable of literal mappings
         3. A pre-instantiated grounder or gilda grounder
     :param implementation: If literal mappings are passed, what kind of grounder to use
+    :param progress: If True, show a progress bar when loading literal mappings
     :param kwargs: If literal mappings are passed, keyword arguments passed to the
         construction of the grounder
 
@@ -121,10 +158,14 @@ def make_grounder(
     if _is_gilda_grounder(grounder_hint):
         return GildaGrounder(grounder_hint)
     if isinstance(grounder_hint, str | Path):
-        grounder_hint = read_literal_mappings(grounder_hint)
+        return GildaGrounder.from_literal_mappings(
+            read_literal_mappings(grounder_hint, show_progress=progress)
+        )
 
     if implementation is None or implementation == "gilda":
-        return GildaGrounder.from_literal_mappings(grounder_hint, **kwargs)
+        return GildaGrounder.from_literal_mappings(
+            cast(Iterable[LiteralMapping[R]], grounder_hint), **kwargs
+        )
     raise ValueError(f"Unsupported implementation: {implementation}")
 
 
@@ -137,10 +178,10 @@ def _is_gilda_grounder(obj: Any) -> TypeGuard[gilda.Grounder]:
     return isinstance(obj, gilda.Grounder)
 
 
-class Match(BaseModel):
+class Match(BaseModel, Generic[R]):
     """A match from NER."""
 
-    reference: NamableReference
+    reference: R
     score: float
 
     @property
@@ -164,15 +205,15 @@ class Match(BaseModel):
         return self.reference.name
 
 
-class PositionalMatch(BaseModel):
+class PositionalMatch(BaseModel, Generic[R]):
     """A match with a start and end position."""
 
     start: int
     end: int
-    match: Match
+    match: Match[R]
 
     @property
-    def reference(self) -> NamableReference:
+    def reference(self) -> R:
         """Get the scored match's reference."""
         return self.match.reference
 
@@ -202,7 +243,7 @@ class PositionalMatch(BaseModel):
         return self.match.score
 
 
-class Annotation(PositionalMatch):
+class Annotation(Generic[R], PositionalMatch[R]):
     """Data about an annotation."""
 
     text: str
@@ -215,22 +256,48 @@ class Annotation(PositionalMatch):
         return self.text[self.start : self.end]
 
 
-def read_annotations(path: str | Path | TextIO) -> list[Annotation]:
+# docstr-coverage:excused `overload`
+@overload
+def read_annotations(
+    path: str | Path | TextIO, *, reference_cls: type[R] = ...
+) -> list[Annotation[R]]: ...
+
+
+# docstr-coverage:excused `overload`
+@overload
+def read_annotations(
+    path: str | Path | TextIO, *, reference_cls: None = ...
+) -> list[Annotation[NamableReference]]: ...
+
+
+def read_annotations(
+    path: str | Path | TextIO, *, reference_cls: type[R] | None = None
+) -> list[Annotation[R]] | list[Annotation[NamableReference]]:
     """Read annotations from a TSV file."""
+    rv: list[Annotation[R]] | list[Annotation[NamableReference]] = []
     with safe_open_dict_reader(path) as reader:
-        return [Annotation.model_validate(_reorganize(record)) for record in reader]
+        for record in reader:
+            # TODO can the conditional be consolidated?
+            if reference_cls is None:
+                record["match"] = Match(
+                    reference=NamableReference.from_curie(
+                        record.pop("curie"), name=record.pop("name") or None
+                    ),
+                    score=record.pop("score"),
+                )
+            else:
+                record["match"] = Match(
+                    reference=reference_cls.from_curie(
+                        record.pop("curie"), name=record.pop("name") or None
+                    ),
+                    score=record.pop("score"),
+                )
+            record = {k: v for k, v in record.items() if k and v}
+            rv.append(Annotation.model_validate(record))
+    return rv
 
 
-def _reorganize(d: dict[str, Any]) -> dict[str, Any]:
-    d["match"] = Match(
-        reference=curies.NamableReference.from_curie(d.pop("curie"), name=d.pop("name") or None),
-        score=d.pop("score"),
-    )
-    d = {k: v for k, v in d.items() if k and v}
-    return d
-
-
-def write_annotations(annotations: Iterable[Annotation], path: str | Path | TextIO) -> None:
+def write_annotations(annotations: Iterable[Annotation[R]], path: str | Path | TextIO) -> None:
     """Write annotations to a TSV file."""
     with safe_open_writer(path) as writer:
         writer.writerow(("curie", "name", "score", "start", "end", "text", "language", "source"))
@@ -258,17 +325,34 @@ class PandasTargetType(enum.Enum):
     match = enum.auto()
 
 
-class Matcher(ABC):
+class Matcher(ABC, Generic[R]):
     """An interface for a named entity normalizer."""
 
     @abstractmethod
-    def get_matches(self, text: str, **kwargs: Any) -> list[Match]:
+    def get_matches(self, text: str, **kwargs: Any) -> list[Match[R]]:
         """Get matches in the SSSLM format."""
 
-    def get_best_match(self, text: str, **kwargs: Any) -> Match | None:
+    # docstr-coverage:excused `overload`
+    @overload
+    def get_best_match(
+        self, text: str, *, strict: Literal[False] = ..., **kwargs: Any
+    ) -> Match[R] | None: ...
+
+    # docstr-coverage:excused `overload`
+    @overload
+    def get_best_match(
+        self, text: str, *, strict: Literal[True] = ..., **kwargs: Any
+    ) -> Match[R]: ...
+
+    def get_best_match(self, text: str, *, strict: bool = False, **kwargs: Any) -> Match[R] | None:
         """Get matches in the SSSLM format."""
         matches = self.get_matches(text, **kwargs)
-        return matches[0] if matches else None
+        if matches:
+            return matches[0]
+        elif strict:
+            raise ValueError
+        else:
+            return None
 
     @abstractmethod
     def not_empty(self) -> bool:
@@ -317,10 +401,10 @@ class Matcher(ABC):
         df[target_column] = df[column].map(func)
 
 
-class WrappedMatcher(Matcher):
+class WrappedMatcher(Matcher[R], Generic[R]):
     """A matcher that wraps another matcher, allowing for composition."""
 
-    def __init__(self, *, matcher: Matcher) -> None:
+    def __init__(self, *, matcher: Matcher[R]) -> None:
         """Instantiate the matcher around another matcher."""
         self._matcher = matcher
 
@@ -329,16 +413,16 @@ class WrappedMatcher(Matcher):
         return self._matcher.not_empty()
 
     # docstr-coverage:excused `inherited`
-    def get_matches(self, text: str, **kwargs: Any) -> list[Match]:  # noqa:D102
+    def get_matches(self, text: str, **kwargs: Any) -> list[Match[R]]:  # noqa:D102
         return self._matcher.get_matches(text, **kwargs)
 
 
 def _match_helper(
-    text: str, matcher: Matcher, target_type: PandasTargetType | str, **kwargs: Any
-) -> str | None | Match | NamableReference:
+    text: str, matcher: Matcher[R], target_type: PandasTargetType | str, **kwargs: Any
+) -> str | None | Match[R] | NamableReference:
     if not isinstance(text, str):  # this catches pd.nan's
         return None
-    match = matcher.get_best_match(text, **kwargs)
+    match = matcher.get_best_match(text, strict=False, **kwargs)
     if not match:
         return None
     if isinstance(target_type, str):
@@ -352,19 +436,19 @@ def _match_helper(
     raise TypeError
 
 
-class Annotator(ABC):
+class Annotator(ABC, Generic[R]):
     """An interface for something that can annotate."""
 
     @abstractmethod
-    def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+    def annotate(self, text: str, **kwargs: Any) -> list[Annotation[R]]:
         """Annotate the text."""
 
 
-class Grounder(Matcher, Annotator, ABC):
+class Grounder(Matcher[R], Annotator[R], ABC, Generic[R]):
     """A combine matcher and annotator."""
 
 
-class SpacyGrounder(Grounder, WrappedMatcher):
+class SpacyGrounder(Grounder[R], WrappedMatcher[R], Generic[R]):
     """An annotator that works via spacy.
 
     .. warning::
@@ -375,7 +459,7 @@ class SpacyGrounder(Grounder, WrappedMatcher):
 
     spacy_language_model: spacy.Language
 
-    def __init__(self, matcher: Matcher, spacy_model: str | spacy.Language) -> None:
+    def __init__(self, matcher: Matcher[R], spacy_model: str | spacy.Language) -> None:
         """Create a grounder based on a pre-defined matcher and a SpaCy NER model.
 
         :param matcher: A pre-defined matcher
@@ -413,7 +497,7 @@ class SpacyGrounder(Grounder, WrappedMatcher):
         else:
             self.spacy_language_model = spacy_model
 
-    def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+    def annotate(self, text: str, **kwargs: Any) -> list[Annotation[R]]:
         """Annotate the text using a combination of the spacy annotator, and the wrapped matcher."""
         document: spacy.tokens.Doc = self.spacy_language_model(text)
         return [
@@ -429,14 +513,14 @@ class SpacyGrounder(Grounder, WrappedMatcher):
 GLINER_DEFAULT = "urchade/gliner_medium-v2.1"
 
 
-class GLiNERGrounder(Grounder, WrappedMatcher):
+class GLiNERGrounder(Grounder[R], WrappedMatcher[R], Generic[R]):
     """An annotator that works via :mod:`gliner`."""
 
     model: gliner.GLiNER
 
     def __init__(
         self,
-        matcher: Matcher,
+        matcher: Matcher[R],
         *,
         model: str | gliner.GLiNER | None = None,
         labels: list[str],
@@ -492,7 +576,7 @@ class GLiNERGrounder(Grounder, WrappedMatcher):
         self.labels = labels
         self.threshold = threshold or 0.5
 
-    def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+    def annotate(self, text: str, **kwargs: Any) -> list[Annotation[R]]:
         """Annotate the text the GLiNER annotator and the wrapped matcher."""
         entities = self.model.predict_entities(text, self.labels, threshold=self.threshold)
         # TODO this also has an entity['score'] that could be used
@@ -503,12 +587,18 @@ class GLiNERGrounder(Grounder, WrappedMatcher):
         ]
 
 
-class GildaMatcher(Matcher):
+class GildaMatcher(Matcher[R], Generic[R]):
     """A matcher that uses gilda as a backend."""
 
-    def __init__(self, grounder: gilda.Grounder) -> None:
+    _reference_cls: type[R]
+
+    def __init__(self, grounder: gilda.Grounder, *, reference_cls: type[R] | None = None) -> None:
         """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
         self._grounder = grounder
+        if reference_cls is None:
+            self._reference_cls = cast(type[R], NamableReference)
+        else:
+            self._reference_cls = reference_cls
 
     def not_empty(self) -> bool:
         """Return if this matcher has lookups indexed in it."""
@@ -519,12 +609,13 @@ class GildaMatcher(Matcher):
         """Get the default/builtin grounder."""
         import gilda.api
 
-        return cls(grounder=gilda.api.grounder.get_grounder())
+        grounder = gilda.api.grounder.get_grounder()  # type:ignore[no-untyped-call]
+        return cls(grounder=grounder)
 
     @classmethod
     def from_literal_mappings(
         cls,
-        literal_mappings: Iterable[LiteralMapping],
+        literal_mappings: Iterable[LiteralMapping[R]],
         *,
         prefix_priority: list[str] | None = None,
         grounder_cls: type[gilda.Grounder] | None = None,
@@ -546,21 +637,30 @@ class GildaMatcher(Matcher):
 
             grounder_cls = gilda.Grounder
 
-        terms = literal_mappings_to_gilda(literal_mappings, on_error=on_error)
-        if filter_duplicates:
+        from more_itertools import peekable
+
+        peekable_literal_mappings = peekable(literal_mappings)
+        try:
+            reference_cls = peekable_literal_mappings.peek().reference.__class__
+        except StopIteration:
+            terms = []
+            reference_cls = None
+        else:
+            # this should be able to infer a peekable is an iterable... ignore for now
+            terms = literal_mappings_to_gilda(peekable_literal_mappings, on_error=on_error)
+        if terms and filter_duplicates:
             from gilda.term import filter_out_duplicates
 
             # suppress logging counting of terms
             logging.getLogger("gilda.term").setLevel(logging.WARNING)
-            terms = filter_out_duplicates(terms)
+            terms = filter_out_duplicates(terms)  # type:ignore[no-untyped-call]
         grounder = grounder_cls(terms, namespace_priority=prefix_priority)
-        return cls(grounder)
+        return cls(grounder, reference_cls=reference_cls)
 
-    @staticmethod
-    def _convert_gilda_match(scored_match: gilda.ScoredMatch) -> Match:
+    def _convert_gilda_match(self, scored_match: gilda.ScoredMatch) -> Match[R]:
         """Wrap a Gilda scored match."""
         return Match(
-            reference=NamedReference(
+            reference=self._reference_cls(
                 prefix=scored_match.term.db,
                 identifier=scored_match.term.id,
                 name=scored_match.term.entry_name,
@@ -574,22 +674,22 @@ class GildaMatcher(Matcher):
         context: str | None = None,
         organisms: list[str] | None = None,
         namespaces: list[str] | None = None,
-    ) -> list[Match]:
+    ) -> list[Match[R]]:
         """Get matches in the SSSLM format using :meth:`gilda.Grounder.ground`."""
         return [
             self._convert_gilda_match(scored_match)
-            for scored_match in self._grounder.ground(
+            for scored_match in self._grounder.ground(  # type:ignore[no-untyped-call]
                 text, context=context, organisms=organisms, namespaces=namespaces
             )
         ]
 
 
-class GildaGrounder(Grounder, GildaMatcher):
+class GildaGrounder(Grounder[R], GildaMatcher[R], Generic[R]):
     """A grounder and annotator that uses gilda as a backend."""
 
-    def __init__(self, grounder: gilda.Grounder) -> None:
+    def __init__(self, grounder: gilda.Grounder, *, reference_cls: type[R] | None = None) -> None:
         """Initialize a grounder wrapping a :class:`gilda.Grounder`."""
-        super().__init__(grounder)
+        super().__init__(grounder, reference_cls=reference_cls)
 
         pystow.ensure_nltk("stopwords")  # very important - do this before importing gilda.ner
 
@@ -597,7 +697,7 @@ class GildaGrounder(Grounder, GildaMatcher):
 
         self._annotate = gilda.ner.annotate
 
-    def annotate(self, text: str, **kwargs: Any) -> list[Annotation]:
+    def annotate(self, text: str, **kwargs: Any) -> list[Annotation[R]]:
         """Annotate the text."""
         return [
             Annotation(

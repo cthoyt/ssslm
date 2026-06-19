@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 from functools import lru_cache
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple, cast, overload
 
-from curies import NamableReference, Reference
+from curies import NamableReference, NamedReference, Reference
 from curies.vocabulary import has_label
 
-from ssslm.model import LiteralMapping
+from ..model import LiteralMapping, R
 
 if TYPE_CHECKING:
     import rdflib
@@ -95,7 +96,7 @@ def _ensure_prefixes(
                 "no CURIE prefix given and none could be looked "
                 "up using vann:preferredNamespacePrefix"
             )
-        curie_prefix = str(curie_prefix_res[0][0])
+        curie_prefix = str(curie_prefix_res[0][0])  # type:ignore[index]
 
     if not uri_prefix:
         uri_prefix_res = list(graph.query(GET_URI_PREFIX))
@@ -103,7 +104,7 @@ def _ensure_prefixes(
             raise ValueError(
                 "no URI prefix given and none could be looked up using vann:preferredNamespaceUri"
             )
-        uri_prefix = str(uri_prefix_res[0][0])
+        uri_prefix = str(uri_prefix_res[0][0])  # type:ignore[index]
     return curie_prefix, uri_prefix
 
 
@@ -131,8 +132,12 @@ def _rank_label_tuple(label_tuple: _LabelTuple) -> tuple[int, int, str, str]:
 def _get_names(graph: rdflib.Graph, uri_prefix: str) -> dict[str, str]:
     # Step 1, get the best possible label. Use a hierarchy of label types and languages
     names_dd: defaultdict[str, list[_LabelTuple]] = defaultdict(list)
-    for uri, predicate, name in graph.query(BEST_NAME_QUERY):
-        if not str(uri).startswith(uri_prefix):
+    results = cast(
+        Iterable["tuple[rdflib.URIRef, rdflib.URIRef, rdflib.Literal]"],
+        graph.query(BEST_NAME_QUERY),
+    )
+    for uri, predicate, name in results:
+        if not str(uri).startswith(uri_prefix) or not name._language:
             continue
         names_dd[uri.removeprefix(uri_prefix)].append(
             _LabelTuple(predicate, name._language, name._value)
@@ -145,9 +150,32 @@ def _get_names(graph: rdflib.Graph, uri_prefix: str) -> dict[str, str]:
     return names
 
 
+# docstr-coverage:excused `overload`
+@overload
 def read_skos(
-    graph: str | rdflib.Graph, curie_prefix: str | None = None, uri_prefix: str | None = None
-) -> list[LiteralMapping]:
+    graph: str | rdflib.Graph,
+    curie_prefix: str | None = ...,
+    uri_prefix: str | None = ...,
+    reference_cls: type[R] = ...,
+) -> list[LiteralMapping[R]]: ...
+
+
+# docstr-coverage:excused `overload`
+@overload
+def read_skos(
+    graph: str | rdflib.Graph,
+    curie_prefix: str | None = ...,
+    uri_prefix: str | None = ...,
+    reference_cls: None = ...,
+) -> list[LiteralMapping[NamedReference]]: ...
+
+
+def read_skos(
+    graph: str | rdflib.Graph,
+    curie_prefix: str | None = None,
+    uri_prefix: str | None = None,
+    reference_cls: type[R] | None = None,
+) -> list[LiteralMapping[R]] | list[LiteralMapping[NamedReference]]:
     """Read literal mappings from a SKOS.
 
     :param graph: Either a URL to a SKOS concept scheme or a pre-parsed SKOS concept
@@ -158,6 +186,7 @@ def read_skos(
     :param uri_prefix: The URI prefix used to identify terms from the SKOS vocabulary.
         If not given, will try to infer by querying the vocabulary for a
         ``vann:preferredNamespaceUri`` annotation on the SKOS concept scheme
+    :param reference_cls: The reference type to use
 
     :returns: A list of literal mappings
 
@@ -187,9 +216,13 @@ def read_skos(
 
     names = _get_names(graph, uri_prefix)
 
-    def _get_reference(uri_ref: rdflib.URIRef) -> NamableReference:
+    if reference_cls is None:
+        reference_cls = NamedReference  # type:ignore
+    assert reference_cls is not None  # noqa:S101
+
+    def _get_reference(uri_ref: rdflib.URIRef) -> R | NamedReference:
         identifier = uri_ref.removeprefix(uri_prefix)
-        return NamableReference(
+        return reference_cls(
             prefix=curie_prefix,
             identifier=identifier,
             name=names.get(identifier),
@@ -197,14 +230,18 @@ def read_skos(
 
     predicate_uri_to_reference = _get_predicate_to_ref()
 
-    rv = [
+    results = cast(
+        Iterable["tuple[rdflib.URIRef, rdflib.URIRef, rdflib.Literal]"], graph.query(LM_QUERY)
+    )
+    # we're ignoring because we know the results will be homogenous
+    rv: list[LiteralMapping[R]] | list[LiteralMapping[NamableReference]] = [
         LiteralMapping(
             reference=_get_reference(uri),
             text=str(value),
             language=value._language,
             predicate=predicate_uri_to_reference[predicate_uri],
         )
-        for uri, predicate_uri, value in graph.query(LM_QUERY)
+        for uri, predicate_uri, value in results
         if uri.startswith(uri_prefix)
     ]
-    return rv
+    return rv  # type:ignore[return-value]

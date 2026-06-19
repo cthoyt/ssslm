@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 import csv
 import datetime
 import gzip
@@ -10,7 +11,17 @@ import itertools as itt
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeAlias
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    Generic,
+    Literal,
+    NamedTuple,
+    TypeAlias,
+    cast,
+    overload,
+)
 
 from curies import NamableReference, Reference, ReferenceTuple
 from curies import vocabulary as v
@@ -18,6 +29,7 @@ from pydantic import BaseModel, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
 from pystow.utils import safe_open, safe_open_writer
 from tqdm import tqdm
+from typing_extensions import TypeVar
 
 if TYPE_CHECKING:
     import gilda
@@ -30,6 +42,7 @@ __all__ = [
     "LiteralMapping",
     "LiteralMappingIndex",
     "LiteralMappingTuple",
+    "R",
     "Writer",
     "append_literal_mapping",
     "df_to_literal_mappings",
@@ -45,9 +58,10 @@ __all__ = [
     "write_literal_mappings",
 ]
 
-
 PANDAS_AVAILABLE = importlib.util.find_spec("pandas")
 GILDA_AVAILABLE = importlib.util.find_spec("gilda")
+
+R = TypeVar("R", bound=NamableReference, default=NamableReference)
 
 
 class LiteralMappingTuple(NamedTuple):
@@ -84,53 +98,63 @@ DEFAULT_PREDICATE = v.has_related_synonym
 GildaErrorPolicy: TypeAlias = Literal["ignore", "raise"]
 
 
-class LiteralMapping(BaseModel):
+class LiteralMapping(BaseModel, Generic[R]):
     """A data model for literal mappings."""
 
     # the first four fields are the core of the literal mapping
-    reference: NamableReference = Field(..., description="The subject of the literal mapping")
-    predicate: Reference = Field(
-        default=DEFAULT_PREDICATE,
-        description="The predicate that connects the term (as subject) "
-        "to the textual synonym (as object)",
-        examples=PREDICATES,
-    )
-    text: str = Field(..., description="The object of the literal mapping")
-    language: LanguageAlpha2 | None = Field(
-        None,
-        description="The language of the synonym. If not given, typically "
-        "assumed to be american english.",
-    )
+    reference: R = Field(..., description="The subject of the literal mapping")
+    predicate: Annotated[
+        Reference,
+        Field(
+            description="The predicate that connects the term (as subject) "
+            "to the textual synonym (as object)",
+            examples=PREDICATES,
+        ),
+    ] = DEFAULT_PREDICATE
+    text: Annotated[str, Field(description="The object of the literal mapping")]
+    language: Annotated[
+        LanguageAlpha2 | None,
+        Field(
+            description="The language of the synonym. If not given, typically "
+            "assumed to be american english.",
+        ),
+    ] = None
 
-    type: Reference | None = Field(
-        default=None,
-        title="Synonym type",
-        description="A qualification for the type of mapping",
-        examples=list(v.synonym_types),
-    )
+    type: Annotated[
+        Reference | None,
+        Field(
+            title="Synonym type",
+            description="A qualification for the type of mapping",
+            examples=list(v.synonym_types),
+        ),
+    ] = None
     provenance: list[Reference] = Field(
         default_factory=list,
         description="A list of articles (e.g., from PubMed, PMC, arXiv) where this synonym appears",
     )
-    contributor: Reference | None = Field(
-        None,
-        description="The contributor, usually given as a reference to ORCID",
-        examples=[v.charlie],
-    )
-    comment: str | None = Field(
-        None, description="An optional comment on the synonym curation or status"
-    )
-    source: str | None = Field(
-        None, description="The name of the resource where the synonym was curated"
-    )
-    date: datetime.date | None = Field(None, description="The date of initial curation")
-    taxon: Reference | None = Field(
-        None,
-        description="If taxon-specific, annotate it here. "
-        "Only use `NCBITaxon` or `ncbitaxon` as the prefix.",
-    )
+    contributor: Annotated[
+        Reference | None,
+        Field(
+            description="The contributor, usually given as a reference to ORCID",
+            examples=[v.charlie],
+        ),
+    ] = None
+    comment: Annotated[
+        str | None, Field(description="An optional comment on the synonym curation or status")
+    ] = None
+    source: Annotated[
+        str | None, Field(description="The name of the resource where the synonym was curated")
+    ] = None
+    date: Annotated[datetime.date | None, Field(description="The date of initial curation")] = None
+    taxon: Annotated[
+        Reference | None,
+        Field(
+            description="If taxon-specific, annotate it here. "
+            "Only use `NCBITaxon` or `ncbitaxon` as the prefix.",
+        ),
+    ] = None
 
-    def __lt__(self, other: LiteralMapping) -> bool:
+    def __lt__(self, other: LiteralMapping[R]) -> bool:
         return _lm_sort_key(self) < _lm_sort_key(other)
 
     def get_all_references(self) -> set[Reference]:
@@ -159,16 +183,41 @@ class LiteralMapping(BaseModel):
             raise ValueError("date is not set")
         return self.date.strftime("%Y-%m-%d")
 
+    # docstr-coverage:excused `overload`
+    @overload
+    @classmethod
+    def from_row(
+        cls,
+        row: dict[str, Any],
+        *,
+        names: Mapping[Reference, str] | None = ...,
+        reference_cls: builtins.type[R] = ...,
+    ) -> LiteralMapping[R]: ...
+
+    # docstr-coverage:excused `overload`
+    @overload
+    @classmethod
+    def from_row(
+        cls,
+        row: dict[str, Any],
+        *,
+        names: Mapping[Reference, str] | None = ...,
+        reference_cls: None = ...,
+    ) -> LiteralMapping[NamableReference]: ...
+
     @classmethod
     def from_row(
         cls,
         row: dict[str, Any],
         *,
         names: Mapping[Reference, str] | None = None,
-        reference_cls: NamableReferenceType = NamableReference,
-    ) -> LiteralMapping:
+        reference_cls: builtins.type[R] | None = None,
+    ) -> LiteralMapping[R] | LiteralMapping[NamableReference]:
         """Parse a dictionary representing a row in a TSV."""
-        reference = reference_cls.from_curie(row["curie"])
+        if reference_cls is None:
+            reference_cls = NamableReference  # type:ignore
+        assert reference_cls is not None  # noqa:S101
+        reference = NamableReference.from_curie(row["curie"])
         name = (names or {}).get(reference) or row.get("name")
         data = {
             "text": row["text"],
@@ -195,7 +244,7 @@ class LiteralMapping(BaseModel):
         if contributor_curie := (row.get("contributor") or "").strip():
             data["contributor"] = reference_cls.from_curie(contributor_curie)
 
-        return cls.model_validate(data)
+        return cast(LiteralMapping[NamableReference], cls.model_validate(data))
 
     def _as_row(self) -> LiteralMappingTuple:
         """Get the synonym as a row for writing."""
@@ -230,21 +279,39 @@ class LiteralMapping(BaseModel):
             return v.has_exact_synonym, None
         raise ValueError(f"unhandled gilda status: {status}")
 
+    # docstr-coverage:excused `overload`
+    @overload
     @classmethod
     def from_gilda(
-        cls, term: gilda.Term, *, reference_cls: NamableReferenceType = NamableReference
-    ) -> LiteralMapping:
+        cls, term: gilda.Term, *, reference_cls: builtins.type[R] = ...
+    ) -> LiteralMapping[R]: ...
+
+    # docstr-coverage:excused `overload`
+    @overload
+    @classmethod
+    def from_gilda(
+        cls, term: gilda.Term, *, reference_cls: None = ...
+    ) -> LiteralMapping[NamableReference]: ...
+
+    @classmethod
+    def from_gilda(
+        cls, term: gilda.Term, *, reference_cls: builtins.type[R] | None = None
+    ) -> LiteralMapping[R] | LiteralMapping[NamableReference]:
         """Construct a synonym from a :mod:`gilda` term.
 
         :param term: A Gilda term
+        :param reference_cls: the class to use to instantiate references
 
-        :returns: A synonym object
+        :returns: A literal mapping object
 
         .. warning::
 
             Gilda's data model is less detailed, so resulting synonym objects will not
             have detailed curation provenance
         """
+        if reference_cls is None:
+            reference_cls = NamableReference  # type:ignore
+        assert reference_cls is not None  # noqa:S101
         predicate, synonym_type = cls._predicate_type_from_gilda(term.status)
         data = {
             "reference": reference_cls(prefix=term.db, identifier=term.id, name=term.entry_name),
@@ -255,7 +322,7 @@ class LiteralMapping(BaseModel):
         }
         if term.organism:
             data["taxon"] = reference_cls(prefix="NCBITaxon", identifier=term.organism)
-        return cls.model_validate(data)
+        return cast(LiteralMapping[NamableReference], cls.model_validate(data))
 
     def _get_gilda_status(self) -> GildaStatus:
         """Get the Gilda status for a synonym."""
@@ -284,11 +351,11 @@ class LiteralMapping(BaseModel):
 
 
 #: An index from the reference to a list of mappings that use the reference
-LiteralMappingIndex: TypeAlias = dict[NamableReference, list[LiteralMapping]]
+LiteralMappingIndex: TypeAlias = dict[R, list[LiteralMapping[R]]]
 
 
 def literal_mappings_to_gilda(
-    literal_mappings: Iterable[LiteralMapping], *, on_error: GildaErrorPolicy = "raise"
+    literal_mappings: Iterable[LiteralMapping[R]], *, on_error: GildaErrorPolicy = "raise"
 ) -> list[gilda.Term]:
     """Convert literal mappings to gilda terms."""
     gilda_terms = []
@@ -318,8 +385,10 @@ def _gilda_term(
     import gilda
     from gilda.process import normalize
 
-    return gilda.Term(
-        normalize(text),
+    norm_text = normalize(text)  # type:ignore[no-untyped-call]
+
+    return gilda.Term(  # type:ignore[no-untyped-call]
+        norm_text,
         text=text,
         db=reference.prefix,
         id=reference.identifier,
@@ -330,7 +399,7 @@ def _gilda_term(
     )
 
 
-def literal_mappings_to_df(literal_mappings: Iterable[LiteralMapping]) -> pandas.DataFrame:
+def literal_mappings_to_df(literal_mappings: Iterable[LiteralMapping[R]]) -> pandas.DataFrame:
     """Get a pandas dataframe from the literal mappings."""
     import pandas as pd
 
@@ -346,18 +415,38 @@ def literal_mappings_to_df(literal_mappings: Iterable[LiteralMapping]) -> pandas
     return df
 
 
+# docstr-coverage:excused `overload`
+@overload
+def df_to_literal_mappings(
+    df: pandas.DataFrame,
+    *,
+    names: Mapping[Reference, str] | None = ...,
+    reference_cls: None = ...,
+) -> list[LiteralMapping[NamableReference]]: ...
+
+
+# docstr-coverage:excused `overload`
+@overload
+def df_to_literal_mappings(
+    df: pandas.DataFrame,
+    *,
+    names: Mapping[Reference, str] | None = ...,
+    reference_cls: type[R] = ...,
+) -> list[LiteralMapping[R]]: ...
+
+
 def df_to_literal_mappings(
     df: pandas.DataFrame,
     *,
     names: Mapping[Reference, str] | None = None,
-    reference_cls: NamableReferenceType = NamableReference,
-) -> list[LiteralMapping]:
+    reference_cls: type[R] | None = None,
+) -> list[LiteralMapping[R]] | list[LiteralMapping[NamableReference]]:
     """Get mapping objects from a dataframe."""
-    return _from_dicts(
-        (row for _, row in df.iterrows()),
-        names=names,
-        reference_cls=reference_cls,
-    )
+    it = (row for _, row in df.iterrows())
+    if reference_cls is None:
+        return _from_dicts(it, names=names)
+    else:
+        return _from_dicts(it, names=names, reference_cls=reference_cls)
 
 
 #: Valid writers
@@ -374,7 +463,7 @@ def _resolve_writer(writer: Writer | None = None) -> Writer:
 
 
 def write_literal_mappings(
-    literal_mappings: Iterable[LiteralMapping],
+    literal_mappings: Iterable[LiteralMapping[R]],
     path: str | Path,
     *,
     writer: Writer | None = None,
@@ -390,7 +479,7 @@ def write_literal_mappings(
         raise ValueError(f"invalid writer: {writer}. Choose one of {Writer}")
 
 
-def _write_builtin(*, path: Path, literal_mappings: Iterable[LiteralMapping]) -> None:
+def _write_builtin(*, path: Path, literal_mappings: Iterable[LiteralMapping[R]]) -> None:
     with safe_open_writer(path) as writer:
         writer.writerow(HEADER)
         writer.writerows(
@@ -398,15 +487,39 @@ def _write_builtin(*, path: Path, literal_mappings: Iterable[LiteralMapping]) ->
         )
 
 
-def _write_pandas(*, path: Path, literal_mappings: Iterable[LiteralMapping]) -> None:
+def _write_pandas(*, path: Path, literal_mappings: Iterable[LiteralMapping[R]]) -> None:
     df = literal_mappings_to_df(literal_mappings)
     df.to_csv(path, index=False, sep="\t")
 
 
-def append_literal_mapping(literal_mapping: LiteralMapping, path: str | Path) -> None:
+def append_literal_mapping(literal_mapping: LiteralMapping[R], path: str | Path) -> None:
     """Append a literal mapping to an existing file."""
     with Path(path).expanduser().resolve().open("a") as file:
         print(*literal_mapping._as_row_for_writer(), sep="\t", file=file)
+
+
+# docstr-coverage:excused `overload`
+@overload
+def read_literal_mappings(
+    path: str | Path,
+    *,
+    delimiter: str | None = ...,
+    names: Mapping[Reference, str] | None = ...,
+    reference_cls: type[R] = ...,
+    show_progress: bool = ...,
+) -> list[LiteralMapping[R]]: ...
+
+
+# docstr-coverage:excused `overload`
+@overload
+def read_literal_mappings(
+    path: str | Path,
+    *,
+    delimiter: str | None = ...,
+    names: Mapping[Reference, str] | None = ...,
+    reference_cls: None = ...,
+    show_progress: bool = ...,
+) -> list[LiteralMapping[NamableReference]]: ...
 
 
 def read_literal_mappings(
@@ -414,9 +527,9 @@ def read_literal_mappings(
     *,
     delimiter: str | None = None,
     names: Mapping[Reference, str] | None = None,
-    reference_cls: NamableReferenceType = NamableReference,
+    reference_cls: type[R] | None = None,
     show_progress: bool = False,
-) -> list[LiteralMapping]:
+) -> list[LiteralMapping[R]] | list[LiteralMapping[NamableReference]]:
     """Load literal mappings from a file.
 
     :param path: A local file path or URL for a biosynonyms-flavored CSV/TSV file
@@ -430,6 +543,10 @@ def read_literal_mappings(
 
     :returns: A list of literal mappings parsed from the table
     """
+    if reference_cls is None:
+        reference_cls = NamableReference  # type:ignore
+    assert reference_cls is not None  # noqa:S101
+
     if isinstance(path, str) and any(path.startswith(schema) for schema in ("https://", "http://")):
         import requests
 
@@ -457,7 +574,9 @@ def read_literal_mappings(
     path = Path(path).expanduser().resolve()
 
     if path.suffix == ".numbers":
-        return _parse_numbers(path, names=names, show_progress=show_progress)
+        return _parse_numbers(
+            path, names=names, show_progress=show_progress, reference_cls=reference_cls
+        )
 
     with safe_open(path) as file:
         return _from_lines(
@@ -469,19 +588,43 @@ def read_literal_mappings(
         )
 
 
-def read_gilda_terms(path: str | Path) -> list[LiteralMapping]:
+# docstr-coverage:excused `overload`
+@overload
+def read_gilda_terms(
+    path: str | Path,
+    *,
+    reference_cls: type[R] = ...,
+) -> list[LiteralMapping[R]]: ...
+
+
+# docstr-coverage:excused `overload`
+@overload
+def read_gilda_terms(
+    path: str | Path,
+    *,
+    reference_cls: None = ...,
+) -> list[LiteralMapping[NamableReference]]: ...
+
+
+def read_gilda_terms(
+    path: str | Path,
+    *,
+    reference_cls: type[R] | None = None,
+) -> list[LiteralMapping[R]] | list[LiteralMapping[NamableReference]]:
     """Read Gilda terms from a file."""
     import gilda.grounder
 
     path = _prepare_gilda_path(path)
-    return [
-        LiteralMapping.from_gilda(gilda_term)
+
+    # we know the result will be homogenous, so we ignore
+    return [  # type:ignore[return-value]
+        LiteralMapping.from_gilda(gilda_term, reference_cls=reference_cls)
         for gilda_term in gilda.grounder.load_entries_from_terms_file(path)
     ]
 
 
 def write_gilda_terms(
-    literal_mappings: Iterable[LiteralMapping],
+    literal_mappings: Iterable[LiteralMapping[R]],
     path: str | Path,
     *,
     on_error: GildaErrorPolicy = "ignore",
@@ -500,13 +643,35 @@ def _prepare_gilda_path(path: str | Path) -> Path:
     return path
 
 
+# docstr-coverage:excused `overload`
+@overload
+def _parse_numbers(
+    path: str | Path,
+    *,
+    names: Mapping[Reference, str] | None = ...,
+    reference_cls: None = ...,
+    show_progress: bool = ...,
+) -> list[LiteralMapping[NamableReference]]: ...
+
+
+# docstr-coverage:excused `overload`
+@overload
+def _parse_numbers(
+    path: str | Path,
+    *,
+    names: Mapping[Reference, str] | None = ...,
+    reference_cls: type[R] = ...,
+    show_progress: bool = ...,
+) -> list[LiteralMapping[R]]: ...
+
+
 def _parse_numbers(
     path: str | Path,
     *,
     names: Mapping[Reference, str] | None = None,
-    reference_cls: NamableReferenceType = NamableReference,
+    reference_cls: type[R] | None = None,
     show_progress: bool = False,
-) -> list[LiteralMapping]:
+) -> list[LiteralMapping[R]] | list[LiteralMapping[NamableReference]]:
     # code example from https://pypi.org/project/numbers-parser
     import numbers_parser
 
@@ -522,14 +687,38 @@ def _parse_numbers(
     )
 
 
+# docstr-coverage:excused `overload`
+@overload
+def _from_lines(
+    lines: Iterable[str],
+    *,
+    delimiter: str | None = ...,
+    names: Mapping[Reference, str] | None = ...,
+    reference_cls: None = ...,
+    show_progress: bool = ...,
+) -> list[LiteralMapping[NamableReference]]: ...
+
+
+# docstr-coverage:excused `overload`
+@overload
+def _from_lines(
+    lines: Iterable[str],
+    *,
+    delimiter: str | None = ...,
+    names: Mapping[Reference, str] | None = ...,
+    reference_cls: type[R] = ...,
+    show_progress: bool = ...,
+) -> list[LiteralMapping[R]]: ...
+
+
 def _from_lines(
     lines: Iterable[str],
     *,
     delimiter: str | None = None,
     names: Mapping[Reference, str] | None = None,
-    reference_cls: NamableReferenceType = NamableReference,
+    reference_cls: type[R] | None = None,
     show_progress: bool = False,
-) -> list[LiteralMapping]:
+) -> list[LiteralMapping[R]] | list[LiteralMapping[NamableReference]]:
     return _from_dicts(
         csv.DictReader(lines, delimiter=delimiter or "\t"),
         names=names,
@@ -538,13 +727,35 @@ def _from_lines(
     )
 
 
+# docstr-coverage:excused `overload`
+@overload
+def _from_dicts(
+    dicts: Iterable[dict[str, Any]],
+    *,
+    names: Mapping[Reference, str] | None = ...,
+    reference_cls: None = ...,
+    show_progress: bool = ...,
+) -> list[LiteralMapping[NamableReference]]: ...
+
+
+# docstr-coverage:excused `overload`
+@overload
+def _from_dicts(
+    dicts: Iterable[dict[str, Any]],
+    *,
+    names: Mapping[Reference, str] | None = ...,
+    reference_cls: type[R] = ...,
+    show_progress: bool = ...,
+) -> list[LiteralMapping[R]]: ...
+
+
 def _from_dicts(
     dicts: Iterable[dict[str, Any]],
     *,
     names: Mapping[Reference, str] | None = None,
-    reference_cls: NamableReferenceType = NamableReference,
+    reference_cls: type[R] | None = None,
     show_progress: bool = False,
-) -> list[LiteralMapping]:
+) -> list[LiteralMapping[R]] | list[LiteralMapping[NamableReference]]:
     rv = []
     it = tqdm(
         dicts,
@@ -554,7 +765,11 @@ def _from_dicts(
         disable=not show_progress,
     )
     for i, record in enumerate(it, start=2):
-        record = {k: v for k, v in record.items() if k and v and k.strip() and v.strip()}
+        record = {
+            k: v
+            for k, v in record.items()
+            if k and v and isinstance(v, str) and k.strip() and v.strip()
+        }
         if record:
             try:
                 literal_mapping = LiteralMapping.from_row(
@@ -563,14 +778,15 @@ def _from_dicts(
             except ValueError as e:
                 raise ValueError(f"failed on row {i}: {record}") from e
             rv.append(literal_mapping)
-    return rv
+    # ignore here since we know that the types will be homogenous
+    return rv  # type:ignore[return-value]
 
 
 def group_literal_mappings(
-    literal_mappings: Iterable[LiteralMapping],
-) -> LiteralMappingIndex:
+    literal_mappings: Iterable[LiteralMapping[R]],
+) -> dict[R, list[LiteralMapping[R]]]:
     """Aggregate literal mappings by reference."""
-    dd: defaultdict[NamableReference, list[LiteralMapping]] = defaultdict(list)
+    dd: defaultdict[R, list[LiteralMapping[R]]] = defaultdict(list)
     for literal_mapping in tqdm(
         literal_mappings, unit="literal mapping", unit_scale=True, leave=False
     ):
@@ -578,7 +794,9 @@ def group_literal_mappings(
     return dict(dd)
 
 
-def get_prefixes(literal_mapping_index: LiteralMappingIndex | list[LiteralMapping]) -> set[str]:
+def get_prefixes(
+    literal_mapping_index: LiteralMappingIndex[R] | list[LiteralMapping[R]],
+) -> set[str]:
     """Get all prefixes appearing in a literal mapping index or iterable of literal mappings."""
     if isinstance(literal_mapping_index, dict):
         return _get_prefixes_from_index(literal_mapping_index)
@@ -588,7 +806,7 @@ def get_prefixes(literal_mapping_index: LiteralMappingIndex | list[LiteralMappin
         raise TypeError
 
 
-def _get_prefixes_from_iterable(literal_mappings: Iterable[LiteralMapping]) -> set[str]:
+def _get_prefixes_from_iterable(literal_mappings: Iterable[LiteralMapping[R]]) -> set[str]:
     return {
         reference.prefix
         for literal_mapping in literal_mappings
@@ -596,7 +814,7 @@ def _get_prefixes_from_iterable(literal_mappings: Iterable[LiteralMapping]) -> s
     }
 
 
-def _get_prefixes_from_index(literal_mapping_index: LiteralMappingIndex) -> set[str]:
+def _get_prefixes_from_index(literal_mapping_index: LiteralMappingIndex[R]) -> set[str]:
     return _get_prefixes_from_iterable(
         literal_mapping
         for literal_mappings in literal_mapping_index.values()
@@ -604,23 +822,29 @@ def _get_prefixes_from_index(literal_mapping_index: LiteralMappingIndex) -> set[
     )
 
 
-def lint_literal_mappings(path: Path, *, delimiter: str | None = None) -> None:
+def lint_literal_mappings(
+    path: Path,
+    *,
+    delimiter: str | None = None,
+    reference_cls: type[R] | None = None,
+) -> None:
     """Lint a literal mappings file."""
-    literal_mappings = read_literal_mappings(path, delimiter=delimiter)
-    literal_mappings = sorted(literal_mappings)
-    write_literal_mappings(literal_mappings, path)
+    literal_mappings = read_literal_mappings(path, delimiter=delimiter, reference_cls=reference_cls)
+    literal_mappings = sorted(literal_mappings)  # type:ignore[assignment]
+    # it's okay the type can't be ignored for this, since it doesn't matter what it is
+    write_literal_mappings(literal_mappings, path)  # type:ignore[misc]
 
 
-def _lm_sort_key(lm: LiteralMapping) -> tuple[str, str, str, str]:
+def _lm_sort_key(lm: LiteralMapping[R]) -> tuple[str, str, str, str]:
     return lm.text.casefold(), lm.text, lm.reference.curie.casefold(), lm.reference.curie
 
 
 def remap_literal_mappings(
-    literal_mappings: list[LiteralMapping],
-    mappings: list[tuple[Reference, Reference]],
+    literal_mappings: list[LiteralMapping[R]],
+    mappings: list[tuple[R, R]],
     *,
     progress: bool = False,
-) -> list[LiteralMapping]:
+) -> list[LiteralMapping[R]]:
     """Use a priority mapping to re-write terms with priority groundings.
 
     :param literal_mappings: A list of literal mappings
@@ -633,14 +857,14 @@ def remap_literal_mappings(
 
     # build a lookup table, since the mappings coming into this function
     # might not have names associated with them, but the literal mappings do
-    refs: dict[ReferenceTuple, NamableReference] = {i.pair: i for i in index}
+    refs: dict[ReferenceTuple, R] = {i.pair: i for i in index}
 
     for source, target in tqdm(
         mappings, unit="mapping", unit_scale=True, desc="applying mappings", disable=not progress
     ):
         # overwrite the target with a reference that has a name, if it exists
         target = refs.get(target.pair, target)
-        source_literal_mappings: list[LiteralMapping] | None = index.pop(source, None)
+        source_literal_mappings: list[LiteralMapping[R]] | None = index.pop(source, None)
         if source_literal_mappings:
             index.setdefault(target, []).extend(
                 _make_new_lm(literal_mapping, target) for literal_mapping in source_literal_mappings
@@ -653,13 +877,13 @@ def remap_literal_mappings(
 
 
 def _make_new_lm(
-    term: LiteralMapping,
-    ref: Reference,
-) -> LiteralMapping:
+    term: LiteralMapping[R],
+    reference: Reference,
+) -> LiteralMapping[R]:
     """Make a new literal term object by replacing the database, identifier, and name."""
-    new_ref = NamableReference(
-        prefix=ref.prefix,
-        identifier=ref.identifier,
-        name=getattr(ref, "name", None),
+    new_ref: R = term.reference.__class__(
+        prefix=reference.prefix,
+        identifier=reference.identifier,
+        name=getattr(reference, "name", None),
     )
     return term.model_copy(update={"reference": new_ref})

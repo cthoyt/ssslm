@@ -28,8 +28,8 @@
     <a href="https://github.com/cthoyt/ssslm/blob/main/.github/CODE_OF_CONDUCT.md">
         <img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Contributor Covenant"/></a>
     <!-- uncomment if you archive on zenodo
-    <a href="https://zenodo.org/badge/latestdoi/XXXXXX">
-        <img src="https://zenodo.org/badge/XXXXXX.svg" alt="DOI"></a>
+    <a href="https://doi.org/10.5281/zenodo.XXXXXX">
+        <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXX.svg" alt="DOI"></a>
     -->
 </p>
 
@@ -131,7 +131,7 @@ Here's an example of some rows in the synonyms table (with linkified CURIEs):
 
 ## 🚀 Installation
 
-<!-- Uncomment this section after your first ``tox -e finish``
+<!-- Uncomment this section after your first ``just finish``
 The most recent release can be installed from
 [PyPI](https://pypi.org/project/ssslm/) with uv:
 
@@ -162,7 +162,7 @@ $ python3 -m pip install git+https://github.com/cthoyt/ssslm.git
 
 Contributions, whether filing an issue, making a pull request, or forking, are
 appreciated. See
-[CONTRIBUTING.md](https://github.com/cthoyt/ssslm/blob/master/.github/CONTRIBUTING.md)
+[CONTRIBUTING.md](https://github.com/cthoyt/ssslm/blob/main/.github/CONTRIBUTING.md)
 for more information on getting involved.
 
 ## 👋 Attribution
@@ -229,14 +229,30 @@ Alternatively, install using pip:
 $ python3 -m pip install -e .
 ```
 
-### 🥼 Testing
+### Pre-commit
 
-After cloning the repository and installing `tox` with
-`uv tool install tox --with tox-uv` or `python3 -m pip install tox tox-uv`, the
-unit tests in the `tests/` folder can be run reproducibly with:
+You can optionally use [pre-commit](https://pre-commit.com) to automate running
+key code quality checks on each commit. Enable it with:
 
 ```console
-$ tox -e py
+$ uvx pre-commit install
+```
+
+Or using `pip`:
+
+```console
+$ pip install pre-commit
+$ pre-commit install
+```
+
+### 🥼 Testing
+
+After cloning the repository and installing `just` with
+`uv tool install rust-just` or `python3 -m pip install rust-just`, the unit
+tests in the `tests/` folder can be run reproducibly with:
+
+```console
+$ just test
 ```
 
 Additionally, these tests are automatically re-run with each commit in a
@@ -249,7 +265,7 @@ The documentation can be built locally using the following:
 ```console
 $ git clone git+https://github.com/cthoyt/ssslm.git
 $ cd ssslm
-$ tox -e docs
+$ just docs
 $ open docs/build/html/index.html
 ```
 
@@ -263,7 +279,7 @@ The documentation can be deployed to [ReadTheDocs](https://readthedocs.io) using
 [`.readthedocs.yml`](.readthedocs.yml) YAML file contains all the configuration
 you'll need. You can also set up continuous integration on GitHub to check not
 only that Sphinx can build the documentation in an isolated environment (i.e.,
-with `tox -e docs-test`) but also that
+with `just docs-test`) but also that
 [ReadTheDocs can build it too](https://docs.readthedocs.io/en/stable/pull-requests.html).
 
 </details>
@@ -344,20 +360,20 @@ Note that this deprecates previous workflows using `.pypirc`.
 
 #### Uploading to PyPI
 
-After installing the package in development mode and installing `tox` with
-`uv tool install tox --with tox-uv` or `python3 -m pip install tox tox-uv`, run
-the following from the console:
+After installing the package in development mode and installing `just` with
+`uv tool install rust-just` or `python3 -m pip install rust-just`, run the
+following from the console:
 
 ```console
-$ tox -e finish
+$ just finish
 ```
 
 This script does the following:
 
 1. Uses [bump-my-version](https://github.com/callowayproject/bump-my-version) to
-   switch the version number in the `pyproject.toml`, `CITATION.cff`,
-   `src/ssslm/version.py`, and [`docs/source/conf.py`](docs/source/conf.py) to
-   not have the `-dev` suffix
+   switch the version number in the `pyproject.toml`, `src/ssslm/version.py`,
+   and [`docs/source/conf.py`](docs/source/conf.py) to not have the `-dev`
+   suffix
 2. Packages the code in both a tar archive and a wheel using
    [`uv build`](https://docs.astral.sh/uv/guides/publish/#building-your-package)
 3. Uploads to PyPI using

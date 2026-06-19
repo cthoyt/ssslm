@@ -5,13 +5,13 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Generic, cast
 
 import click
-from curies import Reference
+from curies import NamableReference, Reference
 from pydantic import BaseModel, Field
 
-from .model import LiteralMapping, lint_literal_mappings, read_literal_mappings
+from .model import LiteralMapping, R, lint_literal_mappings, read_literal_mappings
 from .ner import Grounder, make_grounder
 from .ontology import write_owl_ttl
 
@@ -33,8 +33,10 @@ class Metadata(BaseModel):
     comments: list[str] = Field(default_factory=list)
 
 
-class Repository:
+class Repository(Generic[R]):
     """A configuration for a synonym curation repository."""
+
+    _reference_cls: type[R]
 
     def __init__(
         self,
@@ -44,6 +46,7 @@ class Repository:
         *,
         metadata: Metadata | None = None,
         owl_ttl_path: str | Path | None = None,
+        reference_cls: type[R] | None = None,
     ) -> None:
         """Initialize the synonym curation configuration."""
         self.positives_path = Path(positives_path).expanduser().resolve()
@@ -51,6 +54,10 @@ class Repository:
         self.stop_words_path = Path(stop_words_path).expanduser().resolve()
         self.metadata = metadata
         self.owl_path = Path(owl_ttl_path).expanduser().resolve() if owl_ttl_path else None
+        if reference_cls is None:
+            self._reference_cls = cast(type[R], NamableReference)
+        else:
+            self._reference_cls = reference_cls
 
     def cli(self, *args: Any, **kwargs: Any) -> None:
         """Run the CLI."""
@@ -76,18 +83,18 @@ class Repository:
 
         return main
 
-    def get_positive_synonyms(self) -> list[LiteralMapping]:
+    def get_positive_synonyms(self) -> list[LiteralMapping[R]]:
         """Get positive synonyms curated in Biosynonyms."""
-        return read_literal_mappings(self.positives_path)
+        return read_literal_mappings(self.positives_path, reference_cls=self._reference_cls)
 
-    def get_negative_synonyms(self) -> list[LiteralMapping]:
+    def get_negative_synonyms(self) -> list[LiteralMapping[R]]:
         """Get negative synonyms curated in Biosynonyms."""
-        return read_literal_mappings(self.negatives_path)
+        return read_literal_mappings(self.negatives_path, reference_cls=self._reference_cls)
 
     def lint(self) -> None:
         """Lint the positive/negative mappings and stop words file."""
-        lint_literal_mappings(self.positives_path)
-        lint_literal_mappings(self.negatives_path)
+        lint_literal_mappings(self.positives_path, reference_cls=self._reference_cls)
+        lint_literal_mappings(self.negatives_path, reference_cls=self._reference_cls)
         self.lint_stop_words()
 
     @staticmethod
@@ -130,6 +137,6 @@ class Repository:
             self.get_positive_synonyms(), cast(str | Path, path), metadata=self.metadata, **kwargs
         )
 
-    def make_grounder(self, **kwargs: Any) -> Grounder:
+    def make_grounder(self, **kwargs: Any) -> Grounder[R]:
         """Get a grounder from all positive synonyms."""
         return make_grounder(self.get_positive_synonyms(), **kwargs)
