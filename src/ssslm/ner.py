@@ -347,6 +347,10 @@ class Matcher(ABC, Generic[R]):
         else:
             return None
 
+    def empty(self) -> bool:
+        """Return if the matcher doesn't entries in it."""
+        return not self.not_empty()
+
     @abstractmethod
     def not_empty(self) -> bool:
         """Return if the matcher has entries in it."""
