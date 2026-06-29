@@ -52,7 +52,7 @@ license-files = ["LICENSE"]
 
 requires-python = ">=3.10"
 dependencies = [
-    "curies",
+    "curies>=0.12.7",
     "pydantic",
     "pydantic-extra-types[pycountry]",
     "tqdm",
