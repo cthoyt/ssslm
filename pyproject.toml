@@ -126,7 +126,7 @@ release = [
 # which gets around issues with installing heavy requirements
 # like adeft and flask
 gilda-slim = [
-    "gilda-slim", # works as a drop-in replacement for gilda
+    "gilda-slim>=1.6.1.1", # works as a drop-in replacement for gilda
     "nltk", # needed for NER functionality
     "more-itertools",
 ]
@@ -268,6 +268,7 @@ extend-select = [
 ignore = [
     "D105", # Missing docstring in magic method
     "E203", # Black conflicts with the following
+    "DTZ",
 ]
 
 # See https://docs.astral.sh/ruff/settings/#per-file-ignores

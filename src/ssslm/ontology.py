@@ -155,8 +155,10 @@ def _write_prefix_map(
     prefixes: set[str], file: TextIO, *, prefix_map: dict[str, str] | None = None
 ) -> None:
     """Write the prefix map to the top of a turtle file."""
-    for prefix, uri_prefix in _iter_prefix_map(prefixes, prefix_map=prefix_map):
-        file.write(f"@prefix {prefix}: <{uri_prefix}> .\n")
+    file.writelines(
+        f"@prefix {prefix}: <{uri_prefix}> .\n"
+        for prefix, uri_prefix in _iter_prefix_map(prefixes, prefix_map=prefix_map)
+    )
 
 
 def _iter_prefix_map(
@@ -250,10 +252,10 @@ def write_owl_ttl(  # noqa:C901
 
         file.write(f"\n{PREAMBLE}\n")
 
-        for reference, literal_mappings in dd.items():
+        for reference, literal_mappings_inner in dd.items():
             mains: list[str] = []
             axiom_strs: list[str] = []
-            for literal_mapping in literal_mappings:
+            for literal_mapping in literal_mappings_inner:
                 mains.append(
                     f"{literal_mapping.predicate.curie} {_text_for_turtle(literal_mapping)}"
                 )
@@ -269,7 +271,9 @@ def write_owl_ttl(  # noqa:C901
                     mains.append(f'rdfs:label "{_clean_str(reference.name)}"')
                 else:
                     try:
-                        name = next(synonym.name for synonym in literal_mappings if synonym.name)
+                        name = next(
+                            synonym.name for synonym in literal_mappings_inner if synonym.name
+                        )
                     except StopIteration:
                         pass  # could not extract a name, no worries!
                     else:

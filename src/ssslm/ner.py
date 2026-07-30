@@ -360,7 +360,7 @@ class Matcher(ABC, Generic[R]):
         df: pd.DataFrame,
         column: str | int,
         *,
-        target_column: None | str | int = None,
+        target_column: str | int | None = None,
         target_type: PandasTargetType | str = PandasTargetType.curie,
         **kwargs: Any,
     ) -> None:
@@ -416,7 +416,7 @@ class WrappedMatcher(Matcher[R], Generic[R]):
 
 def _match_helper(
     text: str, matcher: Matcher[R], target_type: PandasTargetType | str, **kwargs: Any
-) -> str | None | Match[R] | NamableReference:
+) -> str | Match[R] | NamableReference | None:
     if not isinstance(text, str):  # this catches pd.nan's
         return None
     match = matcher.get_best_match(text, strict=False, **kwargs)
