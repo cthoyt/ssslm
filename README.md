@@ -53,8 +53,8 @@ from curies import NamedReference
 
 # Construct a mapping using Pydantic objects
 m1 = LiteralMapping(
-   reference=NamedReference(prefix="NCBITaxon", identifier="9606", name="Homo sapiens"),
-   text="human",
+    reference=NamedReference(prefix="NCBITaxon", identifier="9606", name="Homo sapiens"),
+    text="human",
 )
 
 # get a pandas dataframe
