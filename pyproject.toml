@@ -129,6 +129,7 @@ gilda-slim = [
     "gilda-slim>=1.6.1.1", # works as a drop-in replacement for gilda
     "nltk", # needed for NER functionality
     "more-itertools",
+    "nltk!=3.10.1", # skip broken release due to https://github.com/nltk/nltk/issues/3730
 ]
 # needed for using default grounder
 gilda-default = [
