@@ -14,6 +14,7 @@ from typing import (
     Any,
     Generic,
     Literal,
+    Self,
     TextIO,
     TypeAlias,
     TypeGuard,
@@ -26,7 +27,6 @@ import pystow
 from curies import NamableReference
 from pydantic import BaseModel
 from pystow.utils import safe_open_dict_reader, safe_open_writer
-from typing_extensions import Self
 
 from .model import (
     GildaErrorPolicy,

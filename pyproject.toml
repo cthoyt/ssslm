@@ -25,7 +25,6 @@ classifiers = [
     "Framework :: Sphinx",
     "Natural Language :: English",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -50,14 +49,14 @@ keywords = [
 license = "MIT"
 license-files = ["LICENSE"]
 
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
-    "curies",
-    "pydantic",
+    "curies>=0.14.0",
+    "pydantic>=2.0",
     "pydantic-extra-types[pycountry]",
     "tqdm",
     "click",
-    "pystow>=0.8.11",
+    "pystow>=0.9.0",
 ]
 
 # see https://peps.python.org/pep-0735/ and https://docs.astral.sh/uv/concepts/dependencies/#dependency-groups
