@@ -47,6 +47,9 @@ __all__ = [
     "GLINER_DEFAULT",
     "Annotation",
     "Annotator",
+    "EmptyAnnotator",
+    "EmptyGrounder",
+    "EmptyMatcher",
     "GLiNERGrounder",
     "GildaGrounder",
     "GildaMatcher",
@@ -398,6 +401,18 @@ class Matcher(ABC, Generic[R]):
         df[target_column] = df[column].map(func)
 
 
+class EmptyMatcher(Matcher[R]):
+    """An empty matcher."""
+
+    def get_matches(self, text: str, **kwargs: Any) -> list[Match[R]]:
+        """Return no matches."""
+        return []
+
+    def not_empty(self) -> bool:
+        """Return true."""
+        return False
+
+
 class WrappedMatcher(Matcher[R], Generic[R]):
     """A matcher that wraps another matcher, allowing for composition."""
 
@@ -439,6 +454,14 @@ class Annotator(ABC, Generic[R]):
     @abstractmethod
     def annotate(self, text: str, **kwargs: Any) -> list[Annotation[R]]:
         """Annotate the text."""
+
+
+class EmptyAnnotator(Annotator[R]):
+    """An empty annotator."""
+
+    def annotate(self, text: str, **kwargs: Any) -> list[Annotation[R]]:
+        """Return no annotations."""
+        return []
 
 
 class Grounder(Matcher[R], Annotator[R], ABC, Generic[R]):
@@ -706,3 +729,7 @@ class GildaGrounder(Grounder[R], GildaMatcher[R], Generic[R]):
             for annotation in self._annotate(text, grounder=self._grounder, **kwargs)
             for match in annotation.matches
         ]
+
+
+class EmptyGrounder(Grounder[R], EmptyMatcher[R], EmptyAnnotator[R]):
+    """An empty grounder."""
