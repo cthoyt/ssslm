@@ -116,7 +116,7 @@ class LiteralMapping(BaseModel, Generic[R]):
         LanguageAlpha2 | None,
         Field(
             description="The language of the synonym. If not given, typically "
-            "assumed to be american english.",
+            "assumed to be American english.",
         ),
     ] = None
 
