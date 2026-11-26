@@ -6,7 +6,7 @@ import importlib.util
 import unittest
 from typing import TYPE_CHECKING, ClassVar
 
-from curies import NamableReference, Reference
+from curies import Converter, NamableReference, Reference, ReferenceTuple
 
 from ssslm import LiteralMapping, read_skos
 from ssslm.io.skos import _ensure_prefixes, _get_names
@@ -19,18 +19,18 @@ TEST_URL = (
 )
 TEST_TTL = """\
 @base <http://w3id.org/kim/schulfaecher/> .
-@prefix dct: <http://purl.org/dc/terms/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix oeh: <http://w3id.org/openeduhub/vocabs/discipline/> .
 @prefix vann: <http://purl.org/vocab/vann/> .
 
 <> a skos:ConceptScheme ;
-    dct:title "Schulfächer"@de ;
-    dct:description "Werteliste von Fächern im Schulbereich."@de ;
-    dct:publisher "DINI-AG-KIM OER-Metadatengruppe"@de ;
-    dct:created "2021-03-03"^^xsd:date ;
-    dct:license <http://creativecommons.org/publicdomain/zero/1.0/> ;
+    dcterms:title "Schulfächer"@de ;
+    dcterms:description "Werteliste von Fächern im Schulbereich."@de ;
+    dcterms:publisher "DINI-AG-KIM OER-Metadatengruppe"@de ;
+    dcterms:created "2021-03-03"^^xsd:date ;
+    dcterms:license <http://creativecommons.org/publicdomain/zero/1.0/> ;
     vann:preferredNamespaceUri "https://w3id.org/kim/schulfaecher/" ;
     vann:preferredNamespacePrefix "subj";
     skos:hasTopConcept <s1000>, <s1040>, <s1001>, <s1002>, <s1003>, <s1004>,
@@ -54,6 +54,7 @@ TEST_TTL = """\
     skos:closeMatch oeh:04003 ;
     skos:topConceptOf <> .
 """
+CURIE_PREFIX = "kim.schulfaecher"
 URI_PREFIX = "http://w3id.org/kim/schulfaecher/"
 
 TEST_LITERAL_1 = LiteralMapping(
@@ -81,6 +82,7 @@ class TestSKOS(unittest.TestCase):
     """Test reading SKOS."""
 
     graph: ClassVar[rdflib.Graph]
+    converter: ClassVar[Converter]
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -89,6 +91,7 @@ class TestSKOS(unittest.TestCase):
 
         cls.graph = rdflib.Graph()
         cls.graph.parse(data=TEST_TTL)
+        cls.converter = Converter.from_prefix_map({CURIE_PREFIX: URI_PREFIX})
 
     def test_ensure_prefixes(self) -> None:
         """Test extracting prefixes when none available."""
@@ -98,10 +101,11 @@ class TestSKOS(unittest.TestCase):
 
     def test_names(self) -> None:
         """Test getting names."""
-        names = _get_names(self.graph, URI_PREFIX)
+        names = _get_names(self.graph, self.converter)
         self.assertNotEqual(0, len(names), msg="no names extracted")
-        self.assertIn("s1000", names, msg=f"Names: {names}")
-        self.assertEqual("Alt-Griechisch", names["s1000"])
+        reference = ReferenceTuple(CURIE_PREFIX, "s1000")
+        self.assertIn(reference, names, msg=f"Names: {names}")
+        self.assertEqual("Alt-Griechisch", names[reference])
 
     def test_names_constructed(self) -> None:
         """Test getting names from a constructed example."""
@@ -124,15 +128,17 @@ class TestSKOS(unittest.TestCase):
         """
         graph = rdflib.Graph()
         graph.parse(data=ttl, format="ttl")
-        names = _get_names(graph, URI_PREFIX)
+        names = _get_names(graph, self.converter)
         self.assertNotEqual(0, len(names), msg="no names extracted")
 
         # test that rdfs:label is the highest priority
-        self.assertIn("s1000", names)
-        self.assertEqual("Ancient Greek", names["s1000"])
+        reference_s1000 = ReferenceTuple(CURIE_PREFIX, "s1000")
+        self.assertIn(reference_s1000, names)
+        self.assertEqual("Ancient Greek", names[reference_s1000])
 
-        self.assertIn("s1004", names)
-        self.assertEqual("Performing Arts", names["s1004"])
+        reference_s1004 = ReferenceTuple(CURIE_PREFIX, "s1004")
+        self.assertIn(reference_s1004, names)
+        self.assertEqual("Performing Arts", names[reference_s1004])
 
     def test_read_skos(self) -> None:
         """Test reading SKOS."""
