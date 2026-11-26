@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from functools import lru_cache
 from typing import TYPE_CHECKING, NamedTuple, cast, overload
 
@@ -38,7 +38,7 @@ def _get_label_predicates() -> dict[rdflib.URIRef, int]:
 
 
 @lru_cache(1)
-def _get_predicate_to_ref(*, include_extras: bool = False) -> dict[rdflib.URIRef, Reference]:
+def _get_predicate_to_ref(*, include_extras: bool = False) -> Mapping[rdflib.URIRef, Reference]:
     from rdflib import DC, DCTERMS, FOAF, RDFS, SDO, SKOS
 
     rv = {
@@ -155,7 +155,7 @@ def _rank_label_tuple(label_tuple: _LabelTuple) -> tuple[int, int, str, str]:
 
 def _get_names(graph: rdflib.Graph, converter: curies.Converter) -> dict[ReferenceTuple, str]:
     # Step 1, get the best possible label. Use a hierarchy of label types and languages
-    names_dd: defaultdict[str, list[_LabelTuple]] = defaultdict(list)
+    names_dd: defaultdict[ReferenceTuple, list[_LabelTuple]] = defaultdict(list)
     results = cast(
         Iterable["tuple[rdflib.URIRef, rdflib.URIRef, rdflib.Literal]"],
         graph.query(BEST_NAME_QUERY),
@@ -166,7 +166,7 @@ def _get_names(graph: rdflib.Graph, converter: curies.Converter) -> dict[Referen
             continue
         names_dd[reference_tuple].append(_LabelTuple(predicate, name._language, name._value))
 
-    names: dict[str, str] = {
+    names: dict[ReferenceTuple, str] = {
         reference_tuple: min(label_tuples, key=_rank_label_tuple).value
         for reference_tuple, label_tuples in names_dd.items()
     }

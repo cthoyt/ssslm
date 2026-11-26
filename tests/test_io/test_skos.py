@@ -82,6 +82,7 @@ class TestSKOS(unittest.TestCase):
     """Test reading SKOS."""
 
     graph: ClassVar[rdflib.Graph]
+    converter: ClassVar[Converter]
 
     @classmethod
     def setUpClass(cls) -> None:
