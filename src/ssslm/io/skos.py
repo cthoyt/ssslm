@@ -7,8 +7,9 @@ from collections.abc import Iterable
 from functools import lru_cache
 from typing import TYPE_CHECKING, NamedTuple, cast, overload
 
+import curies
 from curies import NamableReference, NamedReference, Reference
-from curies.vocabulary import has_label
+from curies.vocabulary import has_label, skos_pref_label, skos_hidden_label, skos_alt_label
 
 from ..model import LiteralMapping, R
 
@@ -36,8 +37,9 @@ def _get_predicate_to_ref() -> dict[rdflib.URIRef, Reference]:
 
     return {
         RDFS.label: has_label,
-        SKOS.prefLabel: Reference(prefix="skos", identifier="prefLabel"),
-        SKOS.altLabel: Reference(prefix="skos", identifier="altLabel"),
+        SKOS.prefLabel: skos_pref_label,
+        SKOS.altLabel: skos_alt_label,
+        SKOS.hiddenLabel: skos_hidden_label,
     }
 
 
@@ -52,7 +54,7 @@ BEST_NAME_QUERY = """\
 LM_QUERY = """\
     SELECT ?uri ?predicate ?name
     WHERE {
-        VALUES ?predicate { skos:prefLabel rdfs:label skos:altLabel }
+        VALUES ?predicate { skos:prefLabel rdfs:label skos:altLabel skos:hiddenLabel }
         ?uri ?predicate ?name .
     }
 """
@@ -244,5 +246,77 @@ def read_skos(
         )
         for uri, predicate_uri, value in results
         if uri.startswith(uri_prefix)
+    ]
+    return rv  # type:ignore[return-value]
+
+
+def _read_rdf(
+    graph: str | rdflib.Graph,
+    converter: curies.Converter,
+    reference_cls: type[R] | None = None,
+) -> list[LiteralMapping[R]] | list[LiteralMapping[NamedReference]]:
+    """Read literal mappings from a SKOS.
+
+    :param graph: Either a URL to a SKOS concept scheme or a pre-parsed SKOS concept
+        scheme in a :class:`rdflib.Graph`.
+    :param converter: An instance of :class:`curies.Converter`.
+    :param reference_cls: The reference type to use
+
+    :returns: A list of literal mappings
+
+    This function will look for ``rdfs:label``, ``skos:prefLabel``, and
+    ``skos:altLabel``. It will automatically assign a canonical label prioritizing
+    ``rdfs:label`` over ``skos:prefLabel`` and English over other languages. It
+    maintains the predicates in the literal mappings and does not attempt to map to OBO
+    in OWL predicates.
+
+    .. warning::
+
+        This function assumes there is only one ``skos:ConceptScheme`` in the graph
+
+    Example usage:
+
+    .. code-block:: python
+
+        import ssslm
+
+        url = "https://raw.githubusercontent.com/dini-ag-kim/schulfaecher/refs/heads/main/schulfaecher.ttl"
+        literal_mappings = ssslm.read_skos(url)
+
+    """
+    graph = _ensure_graph(graph)
+    curie_prefix, uri_prefix = _ensure_prefixes(
+        graph, curie_prefix=curie_prefix, uri_prefix=uri_prefix
+    )
+
+    names = _get_names(graph, uri_prefix)
+
+    if reference_cls is None:
+        reference_cls = NamedReference  # type:ignore
+    assert reference_cls is not None  # noqa:S101
+
+    def _get_reference(uri_ref: rdflib.URIRef) -> R | NamedReference:
+        identifier = uri_ref.removeprefix(uri_prefix)
+        return reference_cls(
+            prefix=curie_prefix,
+            identifier=identifier,
+            name=names.get(identifier),
+        )
+
+    predicate_uri_to_reference = _get_predicate_to_ref()
+
+    results = cast(
+        Iterable["tuple[rdflib.URIRef, rdflib.URIRef, rdflib.Literal]"], graph.query(LM_QUERY)
+    )
+    # we're ignoring because we know the results will be homogenous
+    rv: list[LiteralMapping[R]] | list[LiteralMapping[NamableReference]] = [
+        LiteralMapping(
+            reference=_get_reference(uri),
+            text=str(value),
+            language=value._language,
+            predicate=predicate_uri_to_reference[predicate_uri],
+        )
+        for uri, predicate_uri, value in results
+        if reference_tuple := converter.parse_uri()
     ]
     return rv  # type:ignore[return-value]
