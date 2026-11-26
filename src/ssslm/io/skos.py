@@ -248,10 +248,9 @@ def _read_rdf(
     reference_cls: type[R] | None = None,
     names: dict[ReferenceTuple, str] | None = None,
 ) -> list[LiteralMapping[R]] | list[LiteralMapping[NamedReference]]:
-    """Read literal mappings from a SKOS.
+    """Read literal mappings from RDF.
 
-    :param graph: Either a URL to a SKOS concept scheme or a pre-parsed SKOS concept
-        scheme in a :class:`rdflib.Graph`.
+    :param graph: Either a URL to triples or a pre-parsed :class:`rdflib.Graph`.
     :param converter: An instance of :class:`curies.Converter`.
     :param reference_cls: The reference type to use
 
