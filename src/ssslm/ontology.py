@@ -6,7 +6,7 @@ from collections import ChainMap
 from collections.abc import Iterable
 from pathlib import Path
 from textwrap import dedent
-from typing import TYPE_CHECKING, Annotated, TextIO
+from typing import IO, TYPE_CHECKING, Annotated
 
 from curies import NamableReference, Reference
 from pystow.utils import safe_open
@@ -152,7 +152,7 @@ DEFAULT_PREFIXES: dict[str, str] = {
 
 
 def _write_prefix_map(
-    prefixes: set[str], file: TextIO, *, prefix_map: dict[str, str] | None = None
+    prefixes: set[str], file: IO[str], *, prefix_map: dict[str, str] | None = None
 ) -> None:
     """Write the prefix map to the top of a turtle file."""
     file.writelines(
